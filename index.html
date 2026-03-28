@@ -342,7 +342,8 @@ async function doLookup(raw) {
   document.getElementById('load-isbn-txt').textContent = 'ISBN: ' + isbn;
 
   try {
-    const [info, owned] = await Promise.all([fetchBookInfo(isbn), fetchOwned(isbn)]);
+    const info = await fetchBookInfo(isbn);
+    const owned = await fetchOwned(isbn, info ? info.series : '');
     if (!info) { toast('❌ 書籍情報が見つかりませんでした','ng'); showScreen('s-scan'); return; }
     cur = { isbn, ...info }; isDupe = owned.isDuplicate || false;
     renderConfirm(info, owned, isbn);
@@ -357,9 +358,16 @@ async function doLookup(raw) {
 async function fetchBookInfo(isbn) {
   const [ndl, gb] = await Promise.all([fetchNDL(isbn), fetchGoogleBooks(isbn)]);
   if (!ndl && !gb) return null;
-  const base = ndl || gb;
-  const cover = gb?.cover || null;
-  return { ...base, cover };
+  // NDL優先でメタデータを取得、表紙はGoogle Books（NDLにはない）
+  const base = ndl ? ndl : gb;
+  const cover = (gb && gb.cover) ? gb.cover : null;
+  // NDLで著者・出版社が取れなかった場合Google Booksで補完
+  if (ndl && gb) {
+    if (!base.author    && gb.author)    base.author    = gb.author;
+    if (!base.publisher && gb.publisher) base.publisher = gb.publisher;
+  }
+  return { title: base.title, author: base.author, publisher: base.publisher,
+           volume: base.volume, series: base.series, cover: cover };
 }
 async function fetchNDL(isbn) {
   try {
@@ -390,16 +398,27 @@ async function fetchGoogleBooks(isbn) {
     return { title: series || info.title, author: (info.authors || []).join(', '), publisher: info.publisher || '', volume, series: series || info.title, cover };
   } catch { return null; }
 }
-async function fetchOwned(isbn) {
+async function fetchOwned(isbn, seriesName) {
   if (!gasURL()) return { isDuplicate: false, ownedVolumes: [] };
-  try { return await gasGet({ action: 'check', isbn }); }
+  try { return await gasGet({ action: 'check', isbn: isbn, series: seriesName || '' }); }
   catch { return { isDuplicate: false, ownedVolumes: [] }; }
 }
 
 // ── Volume parser ──
 function parseVol(t) {
-  const pats = [/\s*[（(]\s*(\d+)\s*[）)]\s*$/,/\s+(\d+)\s*$/,/\s*第\s*(\d+)\s*[巻冊]\s*$/,/\s*(\d+)\s*[巻冊]\s*$/];
-  for (const p of pats) { const m = t.match(p); if (m) return { series: t.replace(p,'').trim(), volume: m[1] }; }
+  // NDL形式: "鬼滅の刃. 4" / "ONE PIECE. 82"
+  // 一般形式: "タイトル 4" / "タイトル（4）" / "第4巻" / "4巻"
+  const pats = [
+    /\.\s*(\d+)\s*$/,              // NDL: ". 4"
+    /\s*[（(]\s*(\d+)\s*[）)]\s*$/, // （4）or(4)
+    /\s*第\s*(\d+)\s*[巻冊]\s*$/,   // 第4巻
+    /\s*(\d+)\s*[巻冊]\s*$/,         // 4巻
+    /\s+(\d+)\s*$/                  // 末尾スペース+数字
+  ];
+  for (const p of pats) {
+    const m = t.match(p);
+    if (m) return { series: t.replace(p, '').replace(/\.\s*$/, '').trim(), volume: m[1] };
+  }
   return { series: t.trim(), volume: '' };
 }
 
