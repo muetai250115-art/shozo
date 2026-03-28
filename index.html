@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>書蔵</title>
+  <title>書蔵管理システム</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
@@ -363,14 +363,30 @@ async function fetchNDL(isbn) {
   try {
     const r = await fetch(`https://iss.ndl.go.jp/api/opensearch?isbn=${isbn}`);
     if (!r.ok) return null;
-    const xml  = new DOMParser().parseFromString(await r.text(), 'text/xml');
-    const item = xml.querySelector('item');
-    if (!item) return null;
-    const g = tag => (item.getElementsByTagNameNS('http://purl.org/dc/elements/1.1/', tag)[0]
-                   || item.querySelector(tag))?.textContent?.trim() || '';
-    const raw = g('title'); if (!raw) return null;
+    const txt = await r.text();
+
+    // <item>〜</item> の最初の1件だけ切り出す
+    const itemMatch = txt.match(/<item[\s>][\s\S]*?<\/item>/);
+    if (!itemMatch) return null;
+    const item = itemMatch[0];
+
+    // 正規表現で dc:title / dc:creator / dc:publisher を取得
+    // （DOMParserの名前空間処理はブラウザ差異が大きいためテキスト解析に変更）
+    const pick = tag => {
+      const m = item.match(new RegExp('<dc:' + tag + '[^>]*>([\\s\\S]*?)<\\/dc:' + tag + '>'));
+      return m ? m[1].replace(/<[^>]+>/g, '').trim() : '';
+    };
+
+    const raw = pick('title');
+    if (!raw) return null;
     const { series, volume } = parseVol(raw);
-    return { title: series || raw, author: g('creator'), publisher: g('publisher'), volume, series: series || raw };
+    return {
+      title:     series || raw,
+      author:    pick('creator'),
+      publisher: pick('publisher'),
+      volume,
+      series:    series || raw
+    };
   } catch { return null; }
 }
 async function fetchCover(isbn) {
