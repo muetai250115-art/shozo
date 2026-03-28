@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>書蔵</title>
+  <title>書蔵管理システム</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
@@ -130,7 +130,7 @@
 
 <!-- ══ LOGIN ══ -->
 <div id="s-login" class="screen active">
-  <div class="login-logo">書　蔵</div>
+  <div class="login-logo">書蔵管理システム</div>
   <div class="login-sub">Home Library Manager</div>
   <div class="login-card">
     <div>
@@ -159,7 +159,7 @@
 <!-- ══ SCAN ══ -->
 <div id="s-scan" class="screen">
   <div class="logo-block">
-    <div class="logo">書　蔵</div>
+    <div class="logo">書蔵管理システム</div>
     <div class="logo-sub">Home Library Manager</div>
   </div>
   <div class="scan-ring"><div class="scan-icon">📚</div></div>
@@ -377,16 +377,32 @@ async function fetchNDL(isbn) {
     const itemMatch = txt.match(/<item[\s>][\s\S]*?<\/item>/);
     if (!itemMatch) return null;
     const item = itemMatch[0];
-    const pick = tag => {
+
+    const pickDC = tag => {
       const m = item.match(new RegExp('<dc:' + tag + '[^>]*>([\\s\\S]*?)<\\/dc:' + tag + '>'));
       return m ? m[1].replace(/<[^>]+>/g, '').trim() : '';
     };
-    const raw = pick('title');
-    if (!raw) return null;
-    const { series, volume } = parseVol(raw);
-    return { title: series || raw, author: pick('creator'), publisher: pick('publisher'), volume, series: series || raw, cover: null };
+
+    // RSSの<title>（"鬼滅の刃. 4"形式）とdc:title両方チェックし、巻数が取れる方を優先
+    const rssTitle = (item.match(/<title>([^<]+)<\/title>/) || [])[1] || '';
+    const dcTitle  = pickDC('title');
+    const parsedRss = parseVol(rssTitle);
+    const parsedDc  = parseVol(dcTitle);
+    const parsed = parsedRss.volume ? parsedRss : parsedDc;
+    const rawTitle = parsed.series || rssTitle || dcTitle;
+    if (!rawTitle) return null;
+
+    return {
+      title:     rawTitle,
+      author:    pickDC('creator'),
+      publisher: pickDC('publisher'),
+      volume:    parsed.volume,
+      series:    parsed.series || rawTitle,
+      cover:     null
+    };
   } catch { return null; }
 }
+
 async function fetchGoogleBooks(isbn) {
   try {
     const d = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`).then(r => r.json());
@@ -406,20 +422,35 @@ async function fetchOwned(isbn, seriesName) {
 
 // ── Volume parser ──
 function parseVol(t) {
-  // NDL形式: "鬼滅の刃. 4" / "ONE PIECE. 82"
-  // 一般形式: "タイトル 4" / "タイトル（4）" / "第4巻" / "4巻"
+  if (!t) return { series: '', volume: '' };
+
+  // 全角スペース・半角スペース両対応の正規化
+  const s = t.trim();
+
   const pats = [
-    /\.\s*(\d+)\s*$/,              // NDL: ". 4"
-    /\s*[（(]\s*(\d+)\s*[）)]\s*$/, // （4）or(4)
-    /\s*第\s*(\d+)\s*[巻冊]\s*$/,   // 第4巻
-    /\s*(\d+)\s*[巻冊]\s*$/,         // 4巻
-    /\s+(\d+)\s*$/                  // 末尾スペース+数字
+    // NDL形式: "鬼滅の刃. 4" / "鬼滅の刃.4"
+    /[.．]\s*(\d+)\s*$/,
+    // 括弧形式: （4）(4)
+    /\s*[（(]\s*(\d+)\s*[）)]\s*$/,
+    // 第N巻・第N冊
+    /\s*第\s*(\d+)\s*[巻冊]\s*$/,
+    // N巻・N冊
+    /\s*(\d+)\s*[巻冊]\s*$/,
+    // 全角スペース+数字: "鬼滅の刃　4"
+    /[\s\u3000]+(\d+)\s*$/,
+    // 半角スペース+数字（最後の手段）
+    /\s+(\d+)\s*$/
   ];
+
   for (const p of pats) {
-    const m = t.match(p);
-    if (m) return { series: t.replace(p, '').replace(/\.\s*$/, '').trim(), volume: m[1] };
+    const m = s.match(p);
+    if (m) {
+      // シリーズ名: マッチ部分を除去し末尾のピリオド・スペースも削除
+      const seriesRaw = s.replace(p, '').replace(/[.．\s]+$/, '').trim();
+      return { series: seriesRaw || s, volume: m[1] };
+    }
   }
-  return { series: t.trim(), volume: '' };
+  return { series: s, volume: '' };
 }
 
 // ── Render confirm ──
