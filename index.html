@@ -371,37 +371,48 @@ async function fetchBookInfo(isbn) {
 }
 async function fetchNDL(isbn) {
   try {
-    const r = await fetch(`https://ndlsearch.ndl.go.jp/api/opensearch?isbn=${isbn}`);
+    // Qiitaの記事参考: SRU API + recordSchema=dcndl で詳細な書誌情報を取得
+    // https://ndlsearch.ndl.go.jp/api/sru?operation=searchRetrieve&recordSchema=dcndl&...
+    const query = encodeURIComponent(`isbn="${isbn}" AND dpid=iss-ndl-opac`);
+    const url = `https://ndlsearch.ndl.go.jp/api/sru?operation=searchRetrieve&version=1.2&recordSchema=dcndl&onlyBib=true&recordPacking=xml&maximumRecords=1&query=${query}`;
+    const r = await fetch(url);
     if (!r.ok) return null;
     const txt = await r.text();
-    const itemMatch = txt.match(/<item[\s>][\s\S]*?<\/item>/);
-    if (!itemMatch) return null;
-    const item = itemMatch[0];
 
-    const pickDC = tag => {
-      const m = item.match(new RegExp('<dc:' + tag + '[^>]*>([\\s\\S]*?)<\\/dc:' + tag + '>'));
-      return m ? m[1].replace(/<[^>]+>/g, '').trim() : '';
-    };
+    // recordDataブロックを取り出す
+    const rdataMatch = txt.match(/<recordData>([\s\S]*?)<\/recordData>/);
+    if (!rdataMatch) return null;
+    const rdata = rdataMatch[1];
 
-    // RSSの<title>（"鬼滅の刃. 4"形式）とdc:title両方チェックし、巻数が取れる方を優先
-    const rssTitle = (item.match(/<title>([^<]+)<\/title>/) || [])[1] || '';
-    const dcTitle  = pickDC('title');
-    const parsedRss = parseVol(rssTitle);
-    const parsedDc  = parseVol(dcTitle);
-    const parsed = parsedRss.volume ? parsedRss : parsedDc;
-    const rawTitle = parsed.series || rssTitle || dcTitle;
+    // dcterms:title → タイトル（巻数含む場合あり）
+    // 形式: <dcterms:title>タイトル</dcterms:title>
+    const titleMatch = rdata.match(/<dcterms:title>([^<]+)<\/dcterms:title>/);
+    // dc:title > rdf:Description > rdf:value でも取れることがある
+    const titleAlt = rdata.match(/<rdf:value>([^<]+)<\/rdf:value>/);
+    const rawTitle = (titleMatch && titleMatch[1].trim()) ||
+                     (titleAlt  && titleAlt[1].trim()) || '';
     if (!rawTitle) return null;
 
+    // dc:creator → 著者
+    const creatorMatch = rdata.match(/<dc:creator>([^<]+)<\/dc:creator>/);
+    const author = creatorMatch ? creatorMatch[1].trim() : '';
+
+    // dcterms:publisher > foaf:Agent > foaf:name → 出版社
+    const pubBlock = rdata.match(/<dcterms:publisher>[\s\S]*?<foaf:name>([^<]+)<\/foaf:name>/);
+    const publisher = pubBlock ? pubBlock[1].trim() : '';
+
+    const { series, volume } = parseVol(rawTitle);
     return {
-      title:     rawTitle,
-      author:    pickDC('creator'),
-      publisher: pickDC('publisher'),
-      volume:    parsed.volume,
-      series:    parsed.series || rawTitle,
+      title:     series || rawTitle,
+      author:    author,
+      publisher: publisher,
+      volume:    volume,
+      series:    series || rawTitle,
       cover:     null
     };
   } catch { return null; }
 }
+
 
 async function fetchGoogleBooks(isbn) {
   try {
