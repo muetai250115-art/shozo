@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>書蔵管理システム</title>
+  <title>書蔵</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
@@ -130,7 +130,7 @@
 
 <!-- ══ LOGIN ══ -->
 <div id="s-login" class="screen active">
-  <div class="login-logo">書蔵管理システム</div>
+  <div class="login-logo">書　蔵</div>
   <div class="login-sub">Home Library Manager</div>
   <div class="login-card">
     <div>
@@ -159,7 +159,7 @@
 <!-- ══ SCAN ══ -->
 <div id="s-scan" class="screen">
   <div class="logo-block">
-    <div class="logo">書蔵管理システム</div>
+    <div class="logo">書　蔵</div>
     <div class="logo-sub">Home Library Manager</div>
   </div>
   <div class="scan-ring"><div class="scan-icon">📚</div></div>
@@ -355,45 +355,39 @@ async function doLookup(raw) {
 
 // ── Fetch book info ──
 async function fetchBookInfo(isbn) {
-  const [ndl, cover] = await Promise.all([fetchNDL(isbn), fetchCover(isbn)]);
-  if (!ndl && !cover) return null;
-  return { ...(ndl || { title:'不明', author:'', publisher:'', volume:'', series:'' }), cover };
+  const [ndl, gb] = await Promise.all([fetchNDL(isbn), fetchGoogleBooks(isbn)]);
+  if (!ndl && !gb) return null;
+  const base = ndl || gb;
+  const cover = gb?.cover || null;
+  return { ...base, cover };
 }
 async function fetchNDL(isbn) {
   try {
-    const r = await fetch(`https://iss.ndl.go.jp/api/opensearch?isbn=${isbn}`);
+    const r = await fetch(`https://ndlsearch.ndl.go.jp/api/opensearch?isbn=${isbn}`);
     if (!r.ok) return null;
     const txt = await r.text();
-
-    // <item>〜</item> の最初の1件だけ切り出す
     const itemMatch = txt.match(/<item[\s>][\s\S]*?<\/item>/);
     if (!itemMatch) return null;
     const item = itemMatch[0];
-
-    // 正規表現で dc:title / dc:creator / dc:publisher を取得
-    // （DOMParserの名前空間処理はブラウザ差異が大きいためテキスト解析に変更）
     const pick = tag => {
       const m = item.match(new RegExp('<dc:' + tag + '[^>]*>([\\s\\S]*?)<\\/dc:' + tag + '>'));
       return m ? m[1].replace(/<[^>]+>/g, '').trim() : '';
     };
-
     const raw = pick('title');
     if (!raw) return null;
     const { series, volume } = parseVol(raw);
-    return {
-      title:     series || raw,
-      author:    pick('creator'),
-      publisher: pick('publisher'),
-      volume,
-      series:    series || raw
-    };
+    return { title: series || raw, author: pick('creator'), publisher: pick('publisher'), volume, series: series || raw, cover: null };
   } catch { return null; }
 }
-async function fetchCover(isbn) {
+async function fetchGoogleBooks(isbn) {
   try {
-    const d = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`).then(r=>r.json());
-    let u = d.items?.[0]?.volumeInfo?.imageLinks?.thumbnail;
-    return u ? u.replace('http://','https://').replace('zoom=1','zoom=2') : null;
+    const d = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`).then(r => r.json());
+    const info = d.items?.[0]?.volumeInfo;
+    if (!info || !info.title) return null;
+    const { series, volume } = parseVol(info.title);
+    let cover = info.imageLinks?.thumbnail || null;
+    if (cover) cover = cover.replace('http://','https://').replace('zoom=1','zoom=2');
+    return { title: series || info.title, author: (info.authors || []).join(', '), publisher: info.publisher || '', volume, series: series || info.title, cover };
   } catch { return null; }
 }
 async function fetchOwned(isbn) {
