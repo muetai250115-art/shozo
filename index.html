@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>書蔵</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:       #0c0b0a;
+      --surface:  #161513;
+      --surface2: #1e1c1a;
+      --border:   rgba(255,255,255,0.08);
+      --gold:     #c9984a;
+      --gold-lt:  #e8c07a;
+      --text:     #ede8df;
+      --muted:    #7a7470;
+      --ok:       #5cba8a;
+      --err:      #e05757;
+      --r:        16px;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%;overflow:hidden}
+    body{background:var(--bg);color:var(--text);font-family:'Noto Serif JP',Georgia,serif;position:relative}
+    body::after{
+      content:'';position:fixed;inset:0;pointer-events:none;z-index:9000;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='.035'/%3E%3C/svg%3E");
+      opacity:.5;
+    }
+    .screen{display:none;position:fixed;inset:0;flex-direction:column;align-items:center}
+    .screen.active{display:flex}
+
+    /* ── LOGIN ── */
+    #s-login{justify-content:center;padding:2.5rem 2rem;gap:0}
+    .login-logo{font-size:2.6rem;font-weight:700;color:var(--gold-lt);letter-spacing:.24em;text-align:center;margin-bottom:.4rem}
+    .login-sub{font-size:.68rem;color:var(--muted);letter-spacing:.22em;text-transform:uppercase;text-align:center;margin-bottom:2.8rem}
+    .login-card{width:100%;max-width:320px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1.75rem 1.5rem;display:flex;flex-direction:column;gap:1.1rem}
+    .field-label{font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:.3rem;display:block}
+    .login-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'DM Mono',monospace;font-size:.88rem;padding:.72rem 1rem;outline:none;-webkit-appearance:none;transition:border-color .18s}
+    .login-input:focus{border-color:var(--gold)}
+    .login-input::placeholder{color:var(--muted)}
+    .btn-login{width:100%;padding:.88rem;background:var(--gold);color:#1a1208;border:none;border-radius:10px;font-family:'Noto Serif JP',serif;font-size:.95rem;font-weight:700;cursor:pointer;margin-top:.3rem;-webkit-tap-highlight-color:transparent;transition:background .15s}
+    .btn-login:active{background:var(--gold-lt)}
+    .btn-login:disabled{opacity:.45;cursor:not-allowed}
+    .login-err{font-size:.78rem;color:var(--err);text-align:center;min-height:1.1em}
+    .login-note{font-size:.7rem;color:var(--muted);text-align:center;margin-top:1.4rem;line-height:1.7}
+
+    /* ── SCAN ── */
+    #s-scan{justify-content:center;gap:2rem;padding:2rem 1.5rem}
+    .logo-block{text-align:center}
+    .logo{font-size:2.2rem;font-weight:700;color:var(--gold-lt);letter-spacing:.2em}
+    .logo-sub{font-size:.7rem;color:var(--muted);letter-spacing:.22em;text-transform:uppercase;margin-top:.3rem}
+    .scan-ring{width:152px;height:152px;border-radius:50%;border:1.5px solid rgba(201,152,74,.18);position:relative;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .scan-ring::before{content:'';position:absolute;inset:-6px;border-radius:50%;border:1.5px solid transparent;border-top-color:var(--gold);animation:spin 2.4s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .scan-icon{font-size:3.2rem;opacity:.65}
+    .scan-hint{font-size:.85rem;color:var(--muted);text-align:center;line-height:1.85}
+    .manual-row{display:flex;gap:.5rem;width:100%;max-width:340px}
+    .isbn-field{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'DM Mono',monospace;font-size:.82rem;padding:.65rem 1rem;outline:none;-webkit-appearance:none;transition:border-color .2s}
+    .isbn-field:focus{border-color:var(--gold)}
+    .isbn-field::placeholder{color:var(--muted)}
+    .btn{padding:.65rem 1.1rem;border-radius:10px;border:none;cursor:pointer;font-family:'Noto Serif JP',serif;font-size:.85rem;transition:all .15s;-webkit-tap-highlight-color:transparent}
+    .btn-gold{background:var(--gold);color:#1a1208;font-weight:700}
+    .btn-gold:active{background:var(--gold-lt)}
+    .btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border)}
+    .btn-ghost:active{border-color:var(--muted);color:var(--text)}
+
+    /* ── LOADING ── */
+    #s-load{justify-content:center;gap:1.5rem}
+    .spinner{width:44px;height:44px;border-radius:50%;border:1.5px solid var(--border);border-top-color:var(--gold);animation:spin .75s linear infinite}
+    .load-isbn{font-family:'DM Mono',monospace;font-size:.78rem;color:var(--muted);letter-spacing:.08em}
+    .load-msg{font-size:.8rem;color:var(--muted)}
+
+    /* ── CONFIRM SHEET ── */
+    #s-confirm{justify-content:flex-end;background:rgba(0,0,0,.55);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
+    .sheet{background:var(--surface);border-radius:var(--r) var(--r) 0 0;border-top:1px solid rgba(201,152,74,.2);padding:1.25rem 1.25rem 2rem;width:100%;max-height:88dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column;gap:1.25rem;animation:slideUp .3s cubic-bezier(.32,.72,0,1)}
+    @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+    .handle{width:38px;height:4px;background:var(--border);border-radius:2px;margin:0 auto -.25rem;flex-shrink:0}
+    .book-card{display:flex;gap:1rem;align-items:flex-start}
+    .cover-wrap{width:76px;height:108px;flex-shrink:0;border-radius:6px;overflow:hidden;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center}
+    .cover-wrap img{width:100%;height:100%;object-fit:cover}
+    .cover-ph{font-size:2rem;color:var(--muted)}
+    .book-info{flex:1;min-width:0}
+    .b-title{font-size:1rem;font-weight:700;line-height:1.55;color:var(--text)}
+    .b-sub{font-size:.77rem;color:var(--muted);margin-top:.25rem}
+    .vol-pill{display:inline-flex;align-items:center;background:var(--gold);color:#1a1208;font-size:.72rem;font-weight:700;padding:.22rem .65rem;border-radius:20px;margin-top:.45rem}
+    .b-isbn{font-family:'DM Mono',monospace;font-size:.68rem;color:var(--muted);margin-top:.35rem}
+    .dupe-warn{background:rgba(224,87,87,.1);border:1px solid rgba(224,87,87,.3);border-radius:10px;padding:.7rem 1rem;font-size:.82rem;color:var(--err);display:flex;gap:.5rem;align-items:center}
+    .sec-label{font-size:.67rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:.55rem}
+    .vol-grid{display:flex;flex-wrap:wrap;gap:.35rem}
+    .chip{padding:.28rem .6rem;border-radius:6px;font-family:'DM Mono',monospace;font-size:.73rem;font-weight:500}
+    .chip-owned{background:rgba(92,186,138,.13);color:var(--ok);border:1px solid rgba(92,186,138,.28)}
+    .chip-now{background:var(--gold);color:#1a1208;font-weight:700}
+    .chip-miss{background:rgba(255,255,255,.03);color:var(--muted);border:1px solid var(--border)}
+    .action-row{display:flex;gap:.65rem}
+    .action-row .btn{flex:1;padding:.85rem;font-size:.92rem}
+    .btn-reg{background:var(--gold);color:#1a1208;font-weight:700}
+    .btn-reg:active:not(:disabled){background:var(--gold-lt)}
+    .btn-reg:disabled{opacity:.45;cursor:not-allowed}
+    .btn-skip{background:var(--surface2);color:var(--muted);border:1px solid var(--border)}
+    .btn-skip:active{color:var(--text)}
+
+    /* ── SETTINGS ── */
+    #s-settings{align-items:stretch;padding:2rem 1.5rem;gap:1.5rem;overflow-y:auto}
+    .settings-head{display:flex;align-items:center;gap:1rem}
+    .settings-title{font-size:1.3rem;font-weight:700;color:var(--gold-lt)}
+    .field label{display:block;font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:.45rem}
+    .field input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'DM Mono',monospace;font-size:.75rem;padding:.75rem 1rem;outline:none;-webkit-appearance:none}
+    .field input:focus{border-color:var(--gold)}
+    .guide{font-size:.78rem;color:var(--muted);line-height:1.9;margin-top:auto}
+    .sep{border-top:1px solid var(--border);padding-top:1.2rem}
+    .btn-danger{background:rgba(224,87,87,.12);color:var(--err);border:1px solid rgba(224,87,87,.3);padding:.55rem 1.1rem;border-radius:10px;font-family:'Noto Serif JP',serif;font-size:.82rem;cursor:pointer;-webkit-tap-highlight-color:transparent}
+    .btn-danger:active{background:rgba(224,87,87,.22)}
+
+    /* ── COG & TOAST ── */
+    .cog{position:fixed;top:1rem;right:1rem;width:36px;height:36px;border-radius:50%;background:var(--surface);border:1px solid var(--border);color:var(--muted);font-size:.95rem;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:8000;-webkit-tap-highlight-color:transparent;transition:all .2s}
+    .cog:active{color:var(--text);border-color:var(--muted)}
+    .toast{position:fixed;top:1.25rem;left:50%;transform:translateX(-50%) translateY(-90px);background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:.7rem 1.2rem;font-size:.83rem;display:flex;align-items:center;gap:.55rem;z-index:10000;transition:transform .3s cubic-bezier(.32,.72,0,1);white-space:nowrap;box-shadow:0 8px 28px rgba(0,0,0,.45)}
+    .toast.show{transform:translateX(-50%) translateY(0)}
+    .toast.ok{border-color:rgba(92,186,138,.4)}
+    .toast.ng{border-color:rgba(224,87,87,.4)}
+
+    #bt-buf{position:fixed;left:-9999px;opacity:0;font-size:16px}
+  </style>
+</head>
+<body>
+
+<input id="bt-buf" type="text" autocomplete="off" autocorrect="off" autocapitalize="off">
+
+<!-- ══ LOGIN ══ -->
+<div id="s-login" class="screen active">
+  <div class="login-logo">書　蔵</div>
+  <div class="login-sub">Home Library Manager</div>
+  <div class="login-card">
+    <div>
+      <span class="field-label">ユーザーID</span>
+      <input class="login-input" id="login-id" type="text"
+             autocomplete="username" autocorrect="off" autocapitalize="off"
+             placeholder="ID を入力"
+             onkeydown="if(event.key==='Enter')document.getElementById('login-pw').focus()">
+    </div>
+    <div>
+      <span class="field-label">パスワード</span>
+      <input class="login-input" id="login-pw" type="password"
+             autocomplete="current-password" placeholder="パスワードを入力"
+             onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <div class="login-err" id="login-err"></div>
+    <button class="btn-login" id="btn-login" onclick="doLogin()">ログイン</button>
+  </div>
+  <p class="login-note">
+    初回は GAS の Script Properties で<br>
+    <code style="font-family:'DM Mono',monospace;color:var(--gold)">SHOZO_USER</code> と
+    <code style="font-family:'DM Mono',monospace;color:var(--gold)">SHOZO_PASS</code> を設定してください
+  </p>
+</div>
+
+<!-- ══ SCAN ══ -->
+<div id="s-scan" class="screen">
+  <div class="logo-block">
+    <div class="logo">書　蔵</div>
+    <div class="logo-sub">Home Library Manager</div>
+  </div>
+  <div class="scan-ring"><div class="scan-icon">📚</div></div>
+  <p class="scan-hint">バーコードスキャナーで読み取るか<br>ISBNを手動入力してください</p>
+  <div class="manual-row">
+    <input class="isbn-field" id="manual-isbn" type="text"
+           inputmode="numeric" placeholder="ISBN を入力…" maxlength="13"
+           onkeydown="if(event.key==='Enter')doLookup(this.value)">
+    <button class="btn btn-gold" onclick="doLookup(document.getElementById('manual-isbn').value)">検索</button>
+  </div>
+</div>
+
+<!-- ══ LOADING ══ -->
+<div id="s-load" class="screen">
+  <div class="spinner"></div>
+  <div class="load-isbn" id="load-isbn-txt"></div>
+  <div class="load-msg">書籍情報を取得中…</div>
+</div>
+
+<!-- ══ CONFIRM SHEET ══ -->
+<div id="s-confirm" class="screen" onclick="onBackdropTap(event)">
+  <div class="sheet" id="sheet-inner">
+    <div class="handle"></div>
+    <div class="book-card">
+      <div class="cover-wrap" id="cover-wrap"><span class="cover-ph">📖</span></div>
+      <div class="book-info">
+        <div class="b-title" id="b-title">—</div>
+        <div class="b-sub"   id="b-author">—</div>
+        <div class="b-sub"   id="b-publisher"></div>
+        <div id="vol-pill-wrap"></div>
+        <div class="b-isbn"  id="b-isbn">—</div>
+      </div>
+    </div>
+    <div class="dupe-warn" id="dupe-warn" style="display:none">⚠ この本はすでに登録されています</div>
+    <div id="series-sec" style="display:none">
+      <div class="sec-label" id="series-lbl">シリーズ所持状況</div>
+      <div class="vol-grid"  id="vol-grid"></div>
+    </div>
+    <div class="action-row">
+      <button class="btn btn-reg"  id="btn-reg"  onclick="doRegister()">登　録</button>
+      <button class="btn btn-skip" onclick="showScreen('s-scan')">スキップ</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SETTINGS ══ -->
+<div id="s-settings" class="screen">
+  <div class="settings-head">
+    <button class="btn btn-ghost" onclick="showScreen('s-scan')" style="padding:.4rem .8rem">← 戻る</button>
+    <div class="settings-title">設定</div>
+  </div>
+  <div class="field">
+    <label>Google Apps Script URL</label>
+    <input id="gas-input" type="url" placeholder="https://script.google.com/macros/s/…/exec">
+  </div>
+  <button class="btn btn-gold" onclick="saveSettings()" style="align-self:flex-start;padding:.7rem 1.5rem">保存</button>
+  <div class="sep">
+    <button class="btn-danger" onclick="doLogout()">ログアウト</button>
+  </div>
+  <div class="guide">
+    <div class="sec-label" style="margin-bottom:.4rem">使い方</div>
+    1. Eyoyo スキャナーをBluetooth接続<br>
+    2. ISBNをスキャン → 書籍情報を確認<br>
+    3. 「登録」タップ → スプレッドシートに保存
+  </div>
+</div>
+
+<button class="cog" id="cog-btn" onclick="openSettings()">⚙</button>
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Constants ──
+const LS_GAS = 'shozo_gas_url';
+const SS_TOK = 'shozo_token';   // sessionStorage（タブを閉じると消える）
+
+let cur = null, isDupe = false;
+
+// ── Screen ──
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.getElementById('cog-btn').style.display =
+    (id === 's-settings' || id === 's-login') ? 'none' : '';
+}
+function onBackdropTap(e) {
+  if (e.target === document.getElementById('s-confirm')) showScreen('s-scan');
+}
+
+// ── Auth ──
+function getToken()   { return sessionStorage.getItem(SS_TOK) || ''; }
+function setToken(t)  { sessionStorage.setItem(SS_TOK, t); }
+function clearToken() { sessionStorage.removeItem(SS_TOK); }
+function gasURL()     { return localStorage.getItem(LS_GAS) || ''; }
+
+// GASリクエスト共通ラッパー（tokenを自動付与）
+async function gasGet(params) {
+  const url = gasURL();
+  if (!url) throw new Error('GAS URL が設定されていません');
+  const p = new URLSearchParams({ ...params, token: getToken() });
+  const r = await fetch(`${url}?${p}`);
+  const res = await r.json();
+  if (res.error === 'unauthorized') {
+    clearToken();
+    toast('セッションが切れました。再度ログインしてください', 'ng');
+    showScreen('s-login');
+    throw new Error('unauthorized');
+  }
+  return res;
+}
+
+// ── Login ──
+async function doLogin() {
+  const id  = document.getElementById('login-id').value.trim();
+  const pw  = document.getElementById('login-pw').value;
+  const err = document.getElementById('login-err');
+  const btn = document.getElementById('btn-login');
+
+  err.textContent = '';
+  if (!id || !pw) { err.textContent = 'IDとパスワードを入力してください'; return; }
+  if (!gasURL())  { err.textContent = '先に設定画面でGAS URLを入力してください'; return; }
+
+  btn.disabled = true; btn.textContent = '確認中…';
+
+  try {
+    const p   = new URLSearchParams({ action: 'login', user: id, pass: pw });
+    const res = await fetch(`${gasURL()}?${p}`).then(r => r.json());
+    if (res.token) {
+      setToken(res.token);
+      document.getElementById('login-pw').value = '';
+      showScreen('s-scan');
+    } else {
+      err.textContent = 'IDまたはパスワードが違います';
+    }
+  } catch (e) {
+    err.textContent = '接続エラー: ' + e.message;
+  } finally {
+    btn.disabled = false; btn.textContent = 'ログイン';
+  }
+}
+
+function doLogout() {
+  clearToken();
+  document.getElementById('login-id').value  = '';
+  document.getElementById('login-pw').value  = '';
+  document.getElementById('login-err').textContent = '';
+  showScreen('s-login');
+  toast('ログアウトしました');
+}
+
+// ── BT Scanner ──
+const btBuf = document.getElementById('bt-buf');
+let buf = '', timer = null;
+const SKIP_IDS = new Set(['manual-isbn','gas-input','login-id','login-pw']);
+
+document.addEventListener('touchstart', () => {
+  if (!SKIP_IDS.has(document.activeElement?.id)) btBuf.focus();
+}, { passive: true });
+
+document.addEventListener('keydown', e => {
+  if (SKIP_IDS.has(document.activeElement?.id)) return;
+  if (e.key === 'Enter') {
+    if (buf.replace(/\D/g,'').length >= 8) doLookup(buf.trim());
+    buf = ''; clearTimeout(timer); return;
+  }
+  if (e.key.length === 1) {
+    buf += e.key; clearTimeout(timer);
+    const d = buf.replace(/\D/g,'');
+    if (d.length >= 13) { doLookup(d.slice(0,13)); buf = ''; }
+    else timer = setTimeout(() => { buf = ''; }, 1200);
+  }
+});
+
+// ── Lookup ──
+async function doLookup(raw) {
+  const isbn = raw.replace(/[^0-9X]/gi,'');
+  if (isbn.length < 10) return;
+  if (!getToken()) { showScreen('s-login'); return; }
+
+  showScreen('s-load');
+  document.getElementById('load-isbn-txt').textContent = 'ISBN: ' + isbn;
+
+  try {
+    const [info, owned] = await Promise.all([fetchBookInfo(isbn), fetchOwned(isbn)]);
+    if (!info) { toast('❌ 書籍情報が見つかりませんでした','ng'); showScreen('s-scan'); return; }
+    cur = { isbn, ...info }; isDupe = owned.isDuplicate || false;
+    renderConfirm(info, owned, isbn);
+    showScreen('s-confirm');
+  } catch (e) {
+    if (e.message !== 'unauthorized') toast('❌ ' + e.message, 'ng');
+    showScreen('s-scan');
+  }
+}
+
+// ── Fetch book info ──
+async function fetchBookInfo(isbn) {
+  const [ndl, cover] = await Promise.all([fetchNDL(isbn), fetchCover(isbn)]);
+  if (!ndl && !cover) return null;
+  return { ...(ndl || { title:'不明', author:'', publisher:'', volume:'', series:'' }), cover };
+}
+async function fetchNDL(isbn) {
+  try {
+    const r = await fetch(`https://iss.ndl.go.jp/api/opensearch?isbn=${isbn}`);
+    if (!r.ok) return null;
+    const xml  = new DOMParser().parseFromString(await r.text(), 'text/xml');
+    const item = xml.querySelector('item');
+    if (!item) return null;
+    const g = tag => (item.getElementsByTagNameNS('http://purl.org/dc/elements/1.1/', tag)[0]
+                   || item.querySelector(tag))?.textContent?.trim() || '';
+    const raw = g('title'); if (!raw) return null;
+    const { series, volume } = parseVol(raw);
+    return { title: series || raw, author: g('creator'), publisher: g('publisher'), volume, series: series || raw };
+  } catch { return null; }
+}
+async function fetchCover(isbn) {
+  try {
+    const d = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`).then(r=>r.json());
+    let u = d.items?.[0]?.volumeInfo?.imageLinks?.thumbnail;
+    return u ? u.replace('http://','https://').replace('zoom=1','zoom=2') : null;
+  } catch { return null; }
+}
+async function fetchOwned(isbn) {
+  if (!gasURL()) return { isDuplicate: false, ownedVolumes: [] };
+  try { return await gasGet({ action: 'check', isbn }); }
+  catch { return { isDuplicate: false, ownedVolumes: [] }; }
+}
+
+// ── Volume parser ──
+function parseVol(t) {
+  const pats = [/\s*[（(]\s*(\d+)\s*[）)]\s*$/,/\s+(\d+)\s*$/,/\s*第\s*(\d+)\s*[巻冊]\s*$/,/\s*(\d+)\s*[巻冊]\s*$/];
+  for (const p of pats) { const m = t.match(p); if (m) return { series: t.replace(p,'').trim(), volume: m[1] }; }
+  return { series: t.trim(), volume: '' };
+}
+
+// ── Render confirm ──
+function renderConfirm(info, owned, isbn) {
+  const wrap = document.getElementById('cover-wrap');
+  wrap.innerHTML = '';
+  if (info.cover) {
+    const img = document.createElement('img');
+    img.src = info.cover; img.alt = '表紙';
+    img.onerror = () => { wrap.innerHTML = '<span class="cover-ph">📖</span>'; };
+    wrap.appendChild(img);
+  } else { wrap.innerHTML = '<span class="cover-ph">📖</span>'; }
+
+  document.getElementById('b-title').textContent     = info.title     || '不明';
+  document.getElementById('b-author').textContent    = info.author    ? '著: ' + info.author : '';
+  document.getElementById('b-publisher').textContent = info.publisher ? '出版: ' + info.publisher : '';
+  document.getElementById('b-isbn').textContent      = 'ISBN: ' + isbn;
+  document.getElementById('vol-pill-wrap').innerHTML = info.volume
+    ? `<div class="vol-pill">第 ${info.volume} 巻</div>` : '';
+  document.getElementById('dupe-warn').style.display = isDupe ? 'flex' : 'none';
+  const btn = document.getElementById('btn-reg');
+  btn.disabled = isDupe; btn.textContent = isDupe ? '登録済み' : '登　録';
+
+  const ownedVols = owned.ownedVolumes || [];
+  const curVol    = info.volume ? parseInt(info.volume) : null;
+  const secEl     = document.getElementById('series-sec');
+  if (info.volume) {
+    const allVols = [...new Set([...ownedVols, ...(curVol?[curVol]:[])])].sort((a,b)=>a-b);
+    const maxV    = allVols.length ? Math.max(...allVols) : 0;
+    const grid    = document.getElementById('vol-grid');
+    grid.innerHTML = '';
+    for (let v = 1; v <= maxV; v++) {
+      const chip = document.createElement('div');
+      chip.className   = `chip ${v===curVol?'chip-now':ownedVols.includes(v)?'chip-owned':'chip-miss'}`;
+      chip.textContent = v+'巻'; grid.appendChild(chip);
+    }
+    if (curVol && !allVols.includes(curVol)) {
+      const c = document.createElement('div');
+      c.className = 'chip chip-now'; c.textContent = curVol+'巻'; grid.appendChild(c);
+    }
+    document.getElementById('series-lbl').textContent = `「${info.series}」の所持状況`;
+    secEl.style.display = '';
+  } else { secEl.style.display = 'none'; }
+}
+
+// ── Register ──
+async function doRegister() {
+  if (!cur) return;
+  const btn = document.getElementById('btn-reg');
+  btn.disabled = true; btn.textContent = '登録中…';
+  try {
+    const res = await gasGet({ action:'register', isbn:cur.isbn, title:cur.title||'', author:cur.author||'', volume:cur.volume||'', series:cur.series||'', publisher:cur.publisher||'', cover:cur.cover||'' });
+    if (res.status === 'added') {
+      toast('✓ 登録しました','ok');
+      document.getElementById('manual-isbn').value = '';
+      cur = null; showScreen('s-scan');
+    } else if (res.status === 'exists') {
+      toast('この本は登録済みです'); showScreen('s-scan');
+    } else throw new Error(res.error || '登録失敗');
+  } catch(e) {
+    if (e.message !== 'unauthorized') toast('❌ '+e.message,'ng');
+    btn.disabled = false; btn.textContent = '登　録';
+  }
+}
+
+// ── Settings ──
+function openSettings() { document.getElementById('gas-input').value = gasURL(); showScreen('s-settings'); }
+function saveSettings()  { localStorage.setItem(LS_GAS, document.getElementById('gas-input').value.trim()); toast('✓ 保存しました','ok'); showScreen('s-scan'); }
+
+// ── Toast ──
+let toastTimer = null;
+function toast(msg, type='') {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className = `toast ${type}`;
+  void el.offsetWidth; el.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+// ── Init ──
+btBuf.focus();
+// GAS URLが未設定の場合はログイン画面でも設定させる導線を追加
+if (!gasURL()) {
+  // GAS URL未設定時：ログイン画面に設定入力欄を動的追加
+  const card = document.querySelector('.login-card');
+  const gasRow = document.createElement('div');
+  gasRow.innerHTML = `
+    <span class="field-label">GAS URL（初回のみ）</span>
+    <input class="login-input" id="login-gas" type="url" placeholder="https://script.google.com/…" autocomplete="off">
+  `;
+  card.insertBefore(gasRow, card.firstChild);
+  const origLogin = doLogin;
+  window.doLogin = async function() {
+    const gv = document.getElementById('login-gas')?.value?.trim();
+    if (gv) localStorage.setItem(LS_GAS, gv);
+    await origLogin();
+  };
+}
+// セッションがあればスキャン画面へ
+if (getToken() && gasURL()) showScreen('s-scan');
+</script>
+</body>
+</html>
