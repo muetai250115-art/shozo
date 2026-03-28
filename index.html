@@ -356,6 +356,7 @@ async function doLookup(raw) {
 
 // ── Fetch book info ──
 async function fetchBookInfo(isbn) {
+  // NDLはGAS経由（CORS回避）、Google Booksは直接取得
   const [ndl, gb] = await Promise.all([fetchNDL(isbn), fetchGoogleBooks(isbn)]);
   if (!ndl && !gb) return null;
   // NDL優先でメタデータを取得、表紙はGoogle Books（NDLにはない）
@@ -369,15 +370,17 @@ async function fetchBookInfo(isbn) {
   return { title: base.title, author: base.author, publisher: base.publisher,
            volume: base.volume, series: base.series, cover: cover };
 }
+
+// ──────────────────────────────────────────────
+// 修正: NDL APIをGAS経由で取得（CORS回避）
+// GAS側に action=ndl のハンドラが必要
+// ──────────────────────────────────────────────
 async function fetchNDL(isbn) {
+  if (!gasURL()) return null;
   try {
-    // Qiitaの記事参考: SRU API + recordSchema=dcndl で詳細な書誌情報を取得
-    // https://ndlsearch.ndl.go.jp/api/sru?operation=searchRetrieve&recordSchema=dcndl&...
-    const query = encodeURIComponent(`isbn="${isbn}" AND dpid=iss-ndl-opac`);
-    const url = `https://ndlsearch.ndl.go.jp/api/sru?operation=searchRetrieve&version=1.2&recordSchema=dcndl&onlyBib=true&recordPacking=xml&maximumRecords=1&query=${query}`;
-    const r = await fetch(url);
-    if (!r.ok) return null;
-    const txt = await r.text();
+    const res = await gasGet({ action: 'ndl', isbn: isbn });
+    if (!res.xml) return null;
+    const txt = res.xml;
 
     // recordDataブロックを取り出す
     const rdataMatch = txt.match(/<recordData>([\s\S]*?)<\/recordData>/);
@@ -385,9 +388,7 @@ async function fetchNDL(isbn) {
     const rdata = rdataMatch[1];
 
     // dcterms:title → タイトル（巻数含む場合あり）
-    // 形式: <dcterms:title>タイトル</dcterms:title>
     const titleMatch = rdata.match(/<dcterms:title>([^<]+)<\/dcterms:title>/);
-    // dc:title > rdf:Description > rdf:value でも取れることがある
     const titleAlt = rdata.match(/<rdf:value>([^<]+)<\/rdf:value>/);
     const rawTitle = (titleMatch && titleMatch[1].trim()) ||
                      (titleAlt  && titleAlt[1].trim()) || '';
@@ -421,7 +422,6 @@ async function fetchGoogleBooks(isbn) {
     if (!info || !info.title) return null;
 
     // Google Booksは巻数をtitle/subtitleのどちらかに入れる
-    // 例: title="鬼滅の刃" subtitle="4" または title="鬼滅の刃 4"
     let { series, volume } = parseVol(info.title);
 
     // titleから取れなかった場合はsubtitleを確認
@@ -431,7 +431,6 @@ async function fetchGoogleBooks(isbn) {
         series = fromSub.series;
         volume = fromSub.volume;
       } else {
-        // subtitleが純粋な数字の場合
         const numMatch = info.subtitle.match(/^\s*(\d+)\s*$/);
         if (numMatch) volume = numMatch[1];
       }
@@ -461,7 +460,6 @@ async function fetchOwned(isbn, seriesName) {
 function parseVol(t) {
   if (!t) return { series: '', volume: '' };
 
-  // 全角スペース・半角スペース両対応の正規化
   const s = t.trim();
 
   const pats = [
@@ -482,7 +480,6 @@ function parseVol(t) {
   for (const p of pats) {
     const m = s.match(p);
     if (m) {
-      // シリーズ名: マッチ部分を除去し末尾のピリオド・スペースも削除
       const seriesRaw = s.replace(p, '').replace(/[.．\s]+$/, '').trim();
       return { series: seriesRaw || s, volume: m[1] };
     }
@@ -555,7 +552,6 @@ async function doRegister() {
       document.getElementById('manual-isbn').value = '';
       cur = null; showScreen('s-scan');
     } else if (res.status === 'exists') {
-      // 既登録でも巻数が取れていたら更新を試みる
       if (cur.volume) {
         await gasGet({ action: 'update', isbn: cur.isbn, volume: cur.volume, series: cur.series || '' });
         toast('巻数を更新しました', 'ok');
@@ -585,9 +581,7 @@ function toast(msg, type='') {
 
 // ── Init ──
 btBuf.focus();
-// GAS URLが未設定の場合はログイン画面でも設定させる導線を追加
 if (!gasURL()) {
-  // GAS URL未設定時：ログイン画面に設定入力欄を動的追加
   const card = document.querySelector('.login-card');
   const gasRow = document.createElement('div');
   gasRow.innerHTML = `
@@ -602,7 +596,6 @@ if (!gasURL()) {
     await origLogin();
   };
 }
-// セッションがあればスキャン画面へ
 if (getToken() && gasURL()) showScreen('s-scan');
 </script>
 </body>
