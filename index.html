@@ -408,12 +408,38 @@ async function fetchGoogleBooks(isbn) {
     const d = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`).then(r => r.json());
     const info = d.items?.[0]?.volumeInfo;
     if (!info || !info.title) return null;
-    const { series, volume } = parseVol(info.title);
-    let cover = info.imageLinks?.thumbnail || null;
+
+    // Google Booksは巻数をtitle/subtitleのどちらかに入れる
+    // 例: title="鬼滅の刃" subtitle="4" または title="鬼滅の刃 4"
+    let { series, volume } = parseVol(info.title);
+
+    // titleから取れなかった場合はsubtitleを確認
+    if (!volume && info.subtitle) {
+      const fromSub = parseVol(info.title + ' ' + info.subtitle);
+      if (fromSub.volume) {
+        series = fromSub.series;
+        volume = fromSub.volume;
+      } else {
+        // subtitleが純粋な数字の場合
+        const numMatch = info.subtitle.match(/^\s*(\d+)\s*$/);
+        if (numMatch) volume = numMatch[1];
+      }
+    }
+
+    let cover = (info.imageLinks && info.imageLinks.thumbnail) ? info.imageLinks.thumbnail : null;
     if (cover) cover = cover.replace('http://','https://').replace('zoom=1','zoom=2');
-    return { title: series || info.title, author: (info.authors || []).join(', '), publisher: info.publisher || '', volume, series: series || info.title, cover };
+
+    return {
+      title:     series || info.title,
+      author:    (info.authors || []).join(', '),
+      publisher: info.publisher || '',
+      volume:    volume,
+      series:    series || info.title,
+      cover:     cover
+    };
   } catch { return null; }
 }
+
 async function fetchOwned(isbn, seriesName) {
   if (!gasURL()) return { isDuplicate: false, ownedVolumes: [] };
   try { return await gasGet({ action: 'check', isbn: isbn, series: seriesName || '' }); }
@@ -502,16 +528,33 @@ async function doRegister() {
   const btn = document.getElementById('btn-reg');
   btn.disabled = true; btn.textContent = '登録中…';
   try {
-    const res = await gasGet({ action:'register', isbn:cur.isbn, title:cur.title||'', author:cur.author||'', volume:cur.volume||'', series:cur.series||'', publisher:cur.publisher||'', cover:cur.cover||'' });
+    const res = await gasGet({
+      action: 'register',
+      isbn:      cur.isbn,
+      title:     cur.title     || '',
+      author:    cur.author    || '',
+      volume:    cur.volume    || '',
+      series:    cur.series    || '',
+      publisher: cur.publisher || '',
+      cover:     cur.cover     || ''
+    });
+
     if (res.status === 'added') {
-      toast('✓ 登録しました','ok');
+      toast('✓ 登録しました', 'ok');
       document.getElementById('manual-isbn').value = '';
       cur = null; showScreen('s-scan');
     } else if (res.status === 'exists') {
-      toast('この本は登録済みです'); showScreen('s-scan');
+      // 既登録でも巻数が取れていたら更新を試みる
+      if (cur.volume) {
+        await gasGet({ action: 'update', isbn: cur.isbn, volume: cur.volume, series: cur.series || '' });
+        toast('巻数を更新しました', 'ok');
+      } else {
+        toast('この本は登録済みです');
+      }
+      showScreen('s-scan');
     } else throw new Error(res.error || '登録失敗');
   } catch(e) {
-    if (e.message !== 'unauthorized') toast('❌ '+e.message,'ng');
+    if (e.message !== 'unauthorized') toast('❌ ' + e.message, 'ng');
     btn.disabled = false; btn.textContent = '登　録';
   }
 }
