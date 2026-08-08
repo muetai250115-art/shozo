@@ -18,6 +18,7 @@
       --muted:    #7a7470;
       --ok:       #5cba8a;
       --err:      #e05757;
+      --warn:     #d9a441;
       --r:        16px;
     }
     *{box-sizing:border-box;margin:0;padding:0}
@@ -84,8 +85,10 @@
     .book-info{flex:1;min-width:0}
     .b-title{font-size:1rem;font-weight:700;line-height:1.55;color:var(--text)}
     .b-sub{font-size:.77rem;color:var(--muted);margin-top:.25rem}
+    .b-imprint{font-size:.7rem;color:var(--muted);opacity:.75;margin-top:.2rem}
     .vol-pill{display:inline-flex;align-items:center;background:var(--gold);color:#1a1208;font-size:.72rem;font-weight:700;padding:.22rem .65rem;border-radius:20px;margin-top:.45rem}
     .b-isbn{font-family:'DM Mono',monospace;font-size:.68rem;color:var(--muted);margin-top:.35rem}
+    .src-tag{display:inline-block;font-size:.62rem;letter-spacing:.1em;color:var(--muted);border:1px solid var(--border);border-radius:4px;padding:.08rem .35rem;margin-left:.4rem;vertical-align:middle}
     .dupe-warn{background:rgba(224,87,87,.1);border:1px solid rgba(224,87,87,.3);border-radius:10px;padding:.7rem 1rem;font-size:.82rem;color:var(--err);display:flex;gap:.5rem;align-items:center}
     .sec-label{font-size:.67rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:.55rem}
     .vol-grid{display:flex;flex-wrap:wrap;gap:.35rem}
@@ -116,10 +119,11 @@
     /* ── COG & TOAST ── */
     .cog{position:fixed;top:1rem;right:1rem;width:36px;height:36px;border-radius:50%;background:var(--surface);border:1px solid var(--border);color:var(--muted);font-size:.95rem;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:8000;-webkit-tap-highlight-color:transparent;transition:all .2s}
     .cog:active{color:var(--text);border-color:var(--muted)}
-    .toast{position:fixed;top:1.25rem;left:50%;transform:translateX(-50%) translateY(-90px);background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:.7rem 1.2rem;font-size:.83rem;display:flex;align-items:center;gap:.55rem;z-index:10000;transition:transform .3s cubic-bezier(.32,.72,0,1);white-space:nowrap;box-shadow:0 8px 28px rgba(0,0,0,.45)}
+    .toast{position:fixed;top:1.25rem;left:50%;transform:translateX(-50%) translateY(-90px);background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:.7rem 1.2rem;font-size:.83rem;display:flex;align-items:center;gap:.55rem;z-index:10000;transition:transform .3s cubic-bezier(.32,.72,0,1);max-width:calc(100vw - 2rem);text-align:center;line-height:1.5;box-shadow:0 8px 28px rgba(0,0,0,.45)}
     .toast.show{transform:translateX(-50%) translateY(0)}
     .toast.ok{border-color:rgba(92,186,138,.4)}
     .toast.ng{border-color:rgba(224,87,87,.4)}
+    .toast.warn{border-color:rgba(217,164,65,.45)}
 
     #bt-buf{position:fixed;left:-9999px;opacity:0;font-size:16px}
   </style>
@@ -163,10 +167,11 @@
     <div class="logo-sub">Home Library Manager</div>
   </div>
   <div class="scan-ring"><div class="scan-icon">📚</div></div>
-  <p class="scan-hint">バーコードスキャナーで読み取るか<br>ISBNを手動入力してください</p>
+  <p class="scan-hint">バーコードスキャナーで読み取るか<br>ISBNを手動入力してください<br>
+    <span style="font-size:.75rem;opacity:.7">※ 上段の 978… を読み取ってください</span></p>
   <div class="manual-row">
     <input class="isbn-field" id="manual-isbn" type="text"
-           inputmode="numeric" placeholder="ISBN を入力…" maxlength="13"
+           inputmode="numeric" placeholder="ISBN を入力…" maxlength="17"
            onkeydown="if(event.key==='Enter')doLookup(this.value)">
     <button class="btn btn-gold" onclick="doLookup(document.getElementById('manual-isbn').value)">検索</button>
   </div>
@@ -189,6 +194,7 @@
         <div class="b-title" id="b-title">—</div>
         <div class="b-sub"   id="b-author">—</div>
         <div class="b-sub"   id="b-publisher"></div>
+        <div class="b-imprint" id="b-imprint"></div>
         <div id="vol-pill-wrap"></div>
         <div class="b-isbn"  id="b-isbn">—</div>
       </div>
@@ -200,7 +206,7 @@
     </div>
     <div class="action-row">
       <button class="btn btn-reg"  id="btn-reg"  onclick="doRegister()">登　録</button>
-      <button class="btn btn-skip" onclick="showScreen('s-scan')">スキップ</button>
+      <button class="btn btn-skip" onclick="backToScan()">スキップ</button>
     </div>
   </div>
 </div>
@@ -217,12 +223,16 @@
   </div>
   <button class="btn btn-gold" onclick="saveSettings()" style="align-self:flex-start;padding:.7rem 1.5rem">保存</button>
   <div class="sep">
+    <div class="sec-label">接続確認</div>
+    <button class="btn btn-ghost" onclick="doPing()" style="padding:.55rem 1.1rem">サーバーに接続してみる</button>
+  </div>
+  <div class="sep">
     <button class="btn-danger" onclick="doLogout()">ログアウト</button>
   </div>
   <div class="guide">
     <div class="sec-label" style="margin-bottom:.4rem">使い方</div>
     1. Eyoyo スキャナーをBluetooth接続<br>
-    2. ISBNをスキャン → 書籍情報を確認<br>
+    2. 本の上段バーコード（978…）をスキャン<br>
     3. 「登録」タップ → スプレッドシートに保存
   </div>
 </div>
@@ -231,13 +241,19 @@
 <div class="toast" id="toast"></div>
 
 <script>
-// ── Constants ──
+// ══════════════════════════════════════════════════════
+//  Constants
+// ══════════════════════════════════════════════════════
 const LS_GAS = 'shozo_gas_url';
-const SS_TOK = 'shozo_token';   // sessionStorage（タブを閉じると消える）
+const LS_TOK = 'shozo_token';      // localStorage: アプリを閉じてもログイン維持
+const LS_EXP = 'shozo_token_exp';  // トークン有効期限(ms)
+const REQ_TIMEOUT = 25000;         // GASは初回起動が遅いことがある
 
-let cur = null, isDupe = false;
+let cur = null, isDupe = false, busy = false;
 
-// ── Screen ──
+// ══════════════════════════════════════════════════════
+//  Screen
+// ══════════════════════════════════════════════════════
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
@@ -245,32 +261,77 @@ function showScreen(id) {
     (id === 's-settings' || id === 's-login') ? 'none' : '';
 }
 function onBackdropTap(e) {
-  if (e.target === document.getElementById('s-confirm')) showScreen('s-scan');
+  if (e.target === document.getElementById('s-confirm')) backToScan();
+}
+function backToScan() {
+  cur = null;
+  showScreen('s-scan');
+  setTimeout(() => btBuf.focus(), 50);   // スキャナー入力を再び受け付ける
 }
 
-// ── Auth ──
-function getToken()   { return sessionStorage.getItem(SS_TOK) || ''; }
-function setToken(t)  { sessionStorage.setItem(SS_TOK, t); }
-function clearToken() { sessionStorage.removeItem(SS_TOK); }
-function gasURL()     { return localStorage.getItem(LS_GAS) || ''; }
+// ══════════════════════════════════════════════════════
+//  Auth
+// ══════════════════════════════════════════════════════
+function getToken() {
+  const t = localStorage.getItem(LS_TOK) || '';
+  const e = parseInt(localStorage.getItem(LS_EXP) || '0');
+  if (t && e && Date.now() > e) { clearToken(); return ''; }  // 期限切れは先に捨てる
+  return t;
+}
+function setToken(t, exp) {
+  localStorage.setItem(LS_TOK, t);
+  if (exp) localStorage.setItem(LS_EXP, String(exp));
+}
+function clearToken() {
+  localStorage.removeItem(LS_TOK);
+  localStorage.removeItem(LS_EXP);
+}
+function gasURL() { return localStorage.getItem(LS_GAS) || ''; }
 
-// GASリクエスト共通ラッパー（tokenを自動付与）
+// タイムアウト付き fetch
+async function fetchJSON(url) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), REQ_TIMEOUT);
+  try {
+    const r = await fetch(url, { signal: ctrl.signal });
+    if (!r.ok) throw new Error('サーバー応答エラー (' + r.status + ')');
+    return await r.json();
+  } catch (e) {
+    if (e.name === 'AbortError') throw new Error('タイムアウトしました');
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// GASリクエスト共通ラッパー（tokenを自動付与 / 期限切れを検出）
 async function gasGet(params) {
   const url = gasURL();
   if (!url) throw new Error('GAS URL が設定されていません');
-  const p = new URLSearchParams({ ...params, token: getToken() });
-  const r = await fetch(`${url}?${p}`);
-  const res = await r.json();
-  if (res.error === 'unauthorized') {
-    clearToken();
-    toast('セッションが切れました。再度ログインしてください', 'ng');
-    showScreen('s-login');
+  const tok = getToken();
+  if (!tok) { forceRelogin('ログインが必要です'); throw new Error('unauthorized'); }
+
+  const p = new URLSearchParams({ ...params, token: tok });
+  const res = await fetchJSON(url + '?' + p);
+
+  if (res && res.error === 'unauthorized') {
+    forceRelogin(res.reason === 'expired'
+      ? 'ログインの有効期限が切れました。再度ログインしてください'
+      : 'セッションが無効です。再度ログインしてください');
     throw new Error('unauthorized');
   }
   return res;
 }
 
-// ── Login ──
+function forceRelogin(msg) {
+  clearToken();
+  toast(msg, 'ng');
+  showScreen('s-login');
+}
+
+// ══════════════════════════════════════════════════════
+//  Login
+// ══════════════════════════════════════════════════════
 async function doLogin() {
   const id  = document.getElementById('login-id').value.trim();
   const pw  = document.getElementById('login-pw').value;
@@ -279,19 +340,28 @@ async function doLogin() {
 
   err.textContent = '';
   if (!id || !pw) { err.textContent = 'IDとパスワードを入力してください'; return; }
-  if (!gasURL())  { err.textContent = '先に設定画面でGAS URLを入力してください'; return; }
+  if (!gasURL())  { err.textContent = '先にGAS URLを入力してください'; return; }
 
   btn.disabled = true; btn.textContent = '確認中…';
 
   try {
     const p   = new URLSearchParams({ action: 'login', user: id, pass: pw });
-    const res = await fetch(`${gasURL()}?${p}`).then(r => r.json());
+    const res = await fetchJSON(gasURL() + '?' + p);
+
     if (res.token) {
-      setToken(res.token);
+      setToken(res.token, res.expires);
       document.getElementById('login-pw').value = '';
       showScreen('s-scan');
+      setTimeout(() => btBuf.focus(), 50);
+    } else if (res.error === 'locked') {
+      err.textContent = res.message || 'ロックされています';
+    } else if (res.error === 'not_configured') {
+      err.textContent = res.message || 'サーバー側の設定が未完了です';
+    } else if (res.error === 'invalid') {
+      err.textContent = 'IDまたはパスワードが違います'
+                      + (res.remaining != null ? '（あと' + res.remaining + '回）' : '');
     } else {
-      err.textContent = 'IDまたはパスワードが違います';
+      err.textContent = 'ログインできませんでした';
     }
   } catch (e) {
     err.textContent = '接続エラー: ' + e.message;
@@ -302,17 +372,28 @@ async function doLogin() {
 
 function doLogout() {
   clearToken();
-  document.getElementById('login-id').value  = '';
-  document.getElementById('login-pw').value  = '';
+  document.getElementById('login-id').value = '';
+  document.getElementById('login-pw').value = '';
   document.getElementById('login-err').textContent = '';
   showScreen('s-login');
   toast('ログアウトしました');
 }
 
-// ── BT Scanner ──
+async function doPing() {
+  try {
+    const res = await gasGet({ action: 'ping' });
+    toast(res.ok ? '✓ サーバーに接続できました' : '応答が不正です', res.ok ? 'ok' : 'ng');
+  } catch (e) {
+    if (e.message !== 'unauthorized') toast('❌ ' + e.message, 'ng');
+  }
+}
+
+// ══════════════════════════════════════════════════════
+//  Bluetooth Scanner
+// ══════════════════════════════════════════════════════
 const btBuf = document.getElementById('bt-buf');
 let buf = '', timer = null;
-const SKIP_IDS = new Set(['manual-isbn','gas-input','login-id','login-pw']);
+const SKIP_IDS = new Set(['manual-isbn','gas-input','login-id','login-pw','login-gas']);
 
 document.addEventListener('touchstart', () => {
   if (!SKIP_IDS.has(document.activeElement?.id)) btBuf.focus();
@@ -321,7 +402,8 @@ document.addEventListener('touchstart', () => {
 document.addEventListener('keydown', e => {
   if (SKIP_IDS.has(document.activeElement?.id)) return;
   if (e.key === 'Enter') {
-    if (buf.replace(/\D/g,'').length >= 8) doLookup(buf.trim());
+    const d = buf.replace(/\D/g,'');
+    if (d.length >= 8) doLookup(buf.trim());
     buf = ''; clearTimeout(timer); return;
   }
   if (e.key.length === 1) {
@@ -332,212 +414,142 @@ document.addEventListener('keydown', e => {
   }
 });
 
-// ── Lookup ──
+// ══════════════════════════════════════════════════════
+//  Lookup（サーバーの action=book に一本化）
+// ══════════════════════════════════════════════════════
 async function doLookup(raw) {
-  const isbn = raw.replace(/[^0-9X]/gi,'');
-  if (isbn.length < 10) return;
-  if (!getToken()) { showScreen('s-login'); return; }
+  if (busy) return;
+  const isbn = String(raw || '').replace(/[^0-9Xx]/g,'').toUpperCase();
 
+  // ── バーコードの事前判定 ──
+  if (!isbn) return;
+  if (isbn.length === 13 && isbn.startsWith('192')) {
+    toast('下段の価格バーコードです。上段の 978… を読み取ってください', 'warn');
+    return;
+  }
+  if (isbn.length !== 10 && isbn.length !== 13) {
+    toast('ISBNとして認識できません: ' + isbn, 'warn');
+    return;
+  }
+  if (isbn.length === 13 && !isbn.startsWith('978') && !isbn.startsWith('979')) {
+    toast('書籍用のバーコードではありません', 'warn');
+    return;
+  }
+  if (!getToken()) { forceRelogin('ログインが必要です'); return; }
+
+  busy = true;
   showScreen('s-load');
   document.getElementById('load-isbn-txt').textContent = 'ISBN: ' + isbn;
 
   try {
-    const info = await fetchBookInfo(isbn);
-    const owned = await fetchOwned(isbn, info ? info.series : '');
-    if (!info) { toast('❌ 書籍情報が見つかりませんでした','ng'); showScreen('s-scan'); return; }
-    cur = { isbn, ...info }; isDupe = owned.isDuplicate || false;
-    renderConfirm(info, owned, isbn);
-    showScreen('s-confirm');
-  } catch (e) {
-    if (e.message !== 'unauthorized') toast('❌ ' + e.message, 'ng');
-    showScreen('s-scan');
-  }
-}
+    const info = await gasGet({ action: 'book', isbn: isbn });
 
-// ── Fetch book info ──
-async function fetchBookInfo(isbn) {
-  // NDLはGAS経由（CORS回避）、Google Booksは直接取得
-  const [ndl, gb] = await Promise.all([fetchNDL(isbn), fetchGoogleBooks(isbn)]);
-  if (!ndl && !gb) return null;
-  // NDL優先でメタデータを取得、表紙はGoogle Books（NDLにはない）
-  const base = ndl ? ndl : gb;
-  const cover = (gb && gb.cover) ? gb.cover : null;
-  // NDLで著者・出版社が取れなかった場合Google Booksで補完
-  if (ndl && gb) {
-    if (!base.author    && gb.author)    base.author    = gb.author;
-    if (!base.publisher && gb.publisher) base.publisher = gb.publisher;
-  }
-  return { title: base.title, author: base.author, publisher: base.publisher,
-           volume: base.volume, series: base.series, cover: cover };
-}
-
-// ──────────────────────────────────────────────
-// 修正: NDL APIをGAS経由で取得（CORS回避）
-// GAS側に action=ndl のハンドラが必要
-// ──────────────────────────────────────────────
-async function fetchNDL(isbn) {
-  if (!gasURL()) return null;
-  try {
-    const res = await gasGet({ action: 'ndl', isbn: isbn });
-    if (!res.xml) return null;
-    const txt = res.xml;
-
-    // recordDataブロックを取り出す
-    const rdataMatch = txt.match(/<recordData>([\s\S]*?)<\/recordData>/);
-    if (!rdataMatch) return null;
-    const rdata = rdataMatch[1];
-
-    // dcterms:title → タイトル（巻数含む場合あり）
-    const titleMatch = rdata.match(/<dcterms:title>([^<]+)<\/dcterms:title>/);
-    const titleAlt = rdata.match(/<rdf:value>([^<]+)<\/rdf:value>/);
-    const rawTitle = (titleMatch && titleMatch[1].trim()) ||
-                     (titleAlt  && titleAlt[1].trim()) || '';
-    if (!rawTitle) return null;
-
-    // dc:creator → 著者
-    const creatorMatch = rdata.match(/<dc:creator>([^<]+)<\/dc:creator>/);
-    const author = creatorMatch ? creatorMatch[1].trim() : '';
-
-    // dcterms:publisher > foaf:Agent > foaf:name → 出版社
-    const pubBlock = rdata.match(/<dcterms:publisher>[\s\S]*?<foaf:name>([^<]+)<\/foaf:name>/);
-    const publisher = pubBlock ? pubBlock[1].trim() : '';
-
-    const { series, volume } = parseVol(rawTitle);
-    return {
-      title:     series || rawTitle,
-      author:    author,
-      publisher: publisher,
-      volume:    volume,
-      series:    series || rawTitle,
-      cover:     null
-    };
-  } catch { return null; }
-}
-
-
-async function fetchGoogleBooks(isbn) {
-  try {
-    const d = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`).then(r => r.json());
-    const info = d.items?.[0]?.volumeInfo;
-    if (!info || !info.title) return null;
-
-    // Google Booksは巻数をtitle/subtitleのどちらかに入れる
-    let { series, volume } = parseVol(info.title);
-
-    // titleから取れなかった場合はsubtitleを確認
-    if (!volume && info.subtitle) {
-      const fromSub = parseVol(info.title + ' ' + info.subtitle);
-      if (fromSub.volume) {
-        series = fromSub.series;
-        volume = fromSub.volume;
-      } else {
-        const numMatch = info.subtitle.match(/^\s*(\d+)\s*$/);
-        if (numMatch) volume = numMatch[1];
-      }
+    if (!info.ok) {
+      toast('❌ ' + (info.message || '書籍情報が見つかりませんでした'), 'ng');
+      backToScan();
+      return;
     }
 
-    let cover = (info.imageLinks && info.imageLinks.thumbnail) ? info.imageLinks.thumbnail : null;
-    if (cover) cover = cover.replace('http://','https://').replace('zoom=1','zoom=2');
+    const owned = await fetchOwned(isbn, info.series);
+    cur = info;
+    isDupe = !!owned.isDuplicate;
+    renderConfirm(info, owned);
+    showScreen('s-confirm');
 
-    return {
-      title:     series || info.title,
-      author:    (info.authors || []).join(', '),
-      publisher: info.publisher || '',
-      volume:    volume,
-      series:    series || info.title,
-      cover:     cover
-    };
-  } catch { return null; }
+  } catch (e) {
+    if (e.message !== 'unauthorized') toast('❌ ' + e.message, 'ng');
+    backToScan();
+  } finally {
+    busy = false;
+  }
 }
 
 async function fetchOwned(isbn, seriesName) {
-  if (!gasURL()) return { isDuplicate: false, ownedVolumes: [] };
-  try { return await gasGet({ action: 'check', isbn: isbn, series: seriesName || '' }); }
-  catch { return { isDuplicate: false, ownedVolumes: [] }; }
-}
-
-// ── Volume parser ──
-function parseVol(t) {
-  if (!t) return { series: '', volume: '' };
-
-  const s = t.trim();
-
-  const pats = [
-    // NDL形式: "鬼滅の刃. 4" / "鬼滅の刃.4"
-    /[.．]\s*(\d+)\s*$/,
-    // 括弧形式: （4）(4)
-    /\s*[（(]\s*(\d+)\s*[）)]\s*$/,
-    // 第N巻・第N冊
-    /\s*第\s*(\d+)\s*[巻冊]\s*$/,
-    // N巻・N冊
-    /\s*(\d+)\s*[巻冊]\s*$/,
-    // 全角スペース+数字: "鬼滅の刃　4"
-    /[\s\u3000]+(\d+)\s*$/,
-    // 半角スペース+数字（最後の手段）
-    /\s+(\d+)\s*$/
-  ];
-
-  for (const p of pats) {
-    const m = s.match(p);
-    if (m) {
-      const seriesRaw = s.replace(p, '').replace(/[.．\s]+$/, '').trim();
-      return { series: seriesRaw || s, volume: m[1] };
-    }
+  try {
+    return await gasGet({ action: 'check', isbn: isbn, series: seriesName || '' });
+  } catch {
+    return { isDuplicate: false, ownedVolumes: [] };
   }
-  return { series: s, volume: '' };
 }
 
-// ── Render confirm ──
-function renderConfirm(info, owned, isbn) {
+// ══════════════════════════════════════════════════════
+//  Render confirm sheet
+// ══════════════════════════════════════════════════════
+function renderConfirm(info, owned) {
+  // 表紙
   const wrap = document.getElementById('cover-wrap');
   wrap.innerHTML = '';
   if (info.cover) {
     const img = document.createElement('img');
-    img.src = info.cover; img.alt = '表紙';
+    img.src = info.cover;
+    img.alt = '表紙';
     img.onerror = () => { wrap.innerHTML = '<span class="cover-ph">📖</span>'; };
     wrap.appendChild(img);
-  } else { wrap.innerHTML = '<span class="cover-ph">📖</span>'; }
+  } else {
+    wrap.innerHTML = '<span class="cover-ph">📖</span>';
+  }
 
-  document.getElementById('b-title').textContent     = info.title     || '不明';
+  // 書誌
+  const srcTag = info.source === 'ndl' ? 'NDL'
+               : info.source === 'google' ? 'Google' : '';
+  document.getElementById('b-title').innerHTML =
+    escapeHTML(info.title || '不明') +
+    (srcTag ? '<span class="src-tag">' + srcTag + '</span>' : '');
   document.getElementById('b-author').textContent    = info.author    ? '著: ' + info.author : '';
   document.getElementById('b-publisher').textContent = info.publisher ? '出版: ' + info.publisher : '';
-  document.getElementById('b-isbn').textContent      = 'ISBN: ' + isbn;
+  document.getElementById('b-imprint').textContent   = info.imprint   || '';
+  document.getElementById('b-isbn').textContent      = 'ISBN: ' + info.isbn;
   document.getElementById('vol-pill-wrap').innerHTML = info.volume
-    ? `<div class="vol-pill">第 ${info.volume} 巻</div>` : '';
+    ? '<div class="vol-pill">第 ' + escapeHTML(info.volume) + ' 巻</div>' : '';
+
+  // 重複
   document.getElementById('dupe-warn').style.display = isDupe ? 'flex' : 'none';
   const btn = document.getElementById('btn-reg');
-  btn.disabled = isDupe; btn.textContent = isDupe ? '登録済み' : '登　録';
+  btn.disabled = isDupe;
+  btn.textContent = isDupe ? '登録済み' : '登　録';
 
-  const ownedVols = owned.ownedVolumes || [];
-  const curVol    = info.volume ? parseInt(info.volume) : null;
+  // シリーズ所持状況
+  const ownedVols = (owned.ownedVolumes || []).filter(Number.isInteger);
+  const curVol    = info.volume ? parseInt(info.volume, 10) : null;
   const secEl     = document.getElementById('series-sec');
-  if (info.volume) {
-    const allVols = [...new Set([...ownedVols, ...(curVol?[curVol]:[])])].sort((a,b)=>a-b);
-    const maxV    = allVols.length ? Math.max(...allVols) : 0;
+
+  if (curVol) {
+    const allVols = [...new Set([...ownedVols, curVol])].sort((a,b) => a-b);
+    const maxV    = Math.max(...allVols);
     const grid    = document.getElementById('vol-grid');
     grid.innerHTML = '';
     for (let v = 1; v <= maxV; v++) {
       const chip = document.createElement('div');
-      chip.className   = `chip ${v===curVol?'chip-now':ownedVols.includes(v)?'chip-owned':'chip-miss'}`;
-      chip.textContent = v+'巻'; grid.appendChild(chip);
+      chip.className = 'chip ' + (v === curVol ? 'chip-now'
+                                : ownedVols.includes(v) ? 'chip-owned' : 'chip-miss');
+      chip.textContent = v + '巻';
+      grid.appendChild(chip);
     }
-    if (curVol && !allVols.includes(curVol)) {
-      const c = document.createElement('div');
-      c.className = 'chip chip-now'; c.textContent = curVol+'巻'; grid.appendChild(c);
-    }
-    document.getElementById('series-lbl').textContent = `「${info.series}」の所持状況`;
+    document.getElementById('series-lbl').textContent = '「' + (info.series || '—') + '」の所持状況';
     secEl.style.display = '';
-  } else { secEl.style.display = 'none'; }
+  } else {
+    secEl.style.display = 'none';
+  }
 }
 
-// ── Register ──
+function escapeHTML(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// ══════════════════════════════════════════════════════
+//  Register
+// ══════════════════════════════════════════════════════
 async function doRegister() {
-  if (!cur) return;
+  if (!cur || busy) return;
+  busy = true;
   const btn = document.getElementById('btn-reg');
   btn.disabled = true; btn.textContent = '登録中…';
+
   try {
     const res = await gasGet({
-      action: 'register',
+      action:    'register',
       isbn:      cur.isbn,
       title:     cur.title     || '',
       author:    cur.author    || '',
@@ -550,53 +562,80 @@ async function doRegister() {
     if (res.status === 'added') {
       toast('✓ 登録しました', 'ok');
       document.getElementById('manual-isbn').value = '';
-      cur = null; showScreen('s-scan');
+      backToScan();
     } else if (res.status === 'exists') {
-      if (cur.volume) {
-        await gasGet({ action: 'update', isbn: cur.isbn, volume: cur.volume, series: cur.series || '' });
-        toast('巻数を更新しました', 'ok');
+      if (cur.volume || cur.series) {
+        await gasGet({ action: 'update', isbn: cur.isbn,
+                       volume: cur.volume || '', series: cur.series || '' });
+        toast('登録済みのため情報を更新しました', 'ok');
       } else {
         toast('この本は登録済みです');
       }
-      showScreen('s-scan');
-    } else throw new Error(res.error || '登録失敗');
-  } catch(e) {
+      backToScan();
+    } else {
+      throw new Error(res.message || res.error || '登録に失敗しました');
+    }
+  } catch (e) {
     if (e.message !== 'unauthorized') toast('❌ ' + e.message, 'ng');
     btn.disabled = false; btn.textContent = '登　録';
+  } finally {
+    busy = false;
   }
 }
 
-// ── Settings ──
-function openSettings() { document.getElementById('gas-input').value = gasURL(); showScreen('s-settings'); }
-function saveSettings()  { localStorage.setItem(LS_GAS, document.getElementById('gas-input').value.trim()); toast('✓ 保存しました','ok'); showScreen('s-scan'); }
+// ══════════════════════════════════════════════════════
+//  Settings / Toast
+// ══════════════════════════════════════════════════════
+function openSettings() {
+  document.getElementById('gas-input').value = gasURL();
+  showScreen('s-settings');
+}
+function saveSettings() {
+  const v = document.getElementById('gas-input').value.trim();
+  if (v && !/^https:\/\/script\.google\.com\//.test(v)) {
+    toast('GASのURL形式ではないようです', 'warn');
+  }
+  localStorage.setItem(LS_GAS, v);
+  toast('✓ 保存しました', 'ok');
+  showScreen('s-scan');
+}
 
-// ── Toast ──
 let toastTimer = null;
 function toast(msg, type='') {
   const el = document.getElementById('toast');
-  el.textContent = msg; el.className = `toast ${type}`;
-  void el.offsetWidth; el.classList.add('show');
-  clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+  el.textContent = msg;
+  el.className = 'toast ' + type;
+  void el.offsetWidth;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3200);
 }
 
-// ── Init ──
+// ══════════════════════════════════════════════════════
+//  Init
+// ══════════════════════════════════════════════════════
 btBuf.focus();
+
 if (!gasURL()) {
   const card = document.querySelector('.login-card');
   const gasRow = document.createElement('div');
-  gasRow.innerHTML = `
-    <span class="field-label">GAS URL（初回のみ）</span>
-    <input class="login-input" id="login-gas" type="url" placeholder="https://script.google.com/…" autocomplete="off">
-  `;
+  gasRow.innerHTML =
+    '<span class="field-label">GAS URL（初回のみ）</span>' +
+    '<input class="login-input" id="login-gas" type="url" ' +
+    'placeholder="https://script.google.com/…" autocomplete="off">';
   card.insertBefore(gasRow, card.firstChild);
+
   const origLogin = doLogin;
-  window.doLogin = async function() {
+  window.doLogin = async function () {
     const gv = document.getElementById('login-gas')?.value?.trim();
     if (gv) localStorage.setItem(LS_GAS, gv);
     await origLogin();
   };
 }
-if (getToken() && gasURL()) showScreen('s-scan');
+
+if (getToken() && gasURL()) {
+  showScreen('s-scan');
+}
 </script>
 </body>
 </html>
