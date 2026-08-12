@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>書蔵管理システム</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -29,6 +29,7 @@
       background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='.035'/%3E%3C/svg%3E");
       opacity:.5;
     }
+    body.cam-on::after{display:none}
     .screen{display:none;position:fixed;inset:0;flex-direction:column;align-items:center}
     .screen.active{display:flex}
 
@@ -48,15 +49,17 @@
     .login-note{font-size:.7rem;color:var(--muted);text-align:center;margin-top:1.4rem;line-height:1.7}
 
     /* ── SCAN ── */
-    #s-scan{justify-content:center;gap:1.8rem;padding:2rem 1.5rem}
+    #s-scan{justify-content:center;gap:1.5rem;padding:2rem 1.5rem}
     .logo-block{text-align:center}
-    .logo{font-size:2.2rem;font-weight:700;color:var(--gold-lt);letter-spacing:.2em}
+    .logo{font-size:2.1rem;font-weight:700;color:var(--gold-lt);letter-spacing:.2em}
     .logo-sub{font-size:.7rem;color:var(--muted);letter-spacing:.22em;text-transform:uppercase;margin-top:.3rem}
-    .scan-ring{width:140px;height:140px;border-radius:50%;border:1.5px solid rgba(201,152,74,.18);position:relative;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-    .scan-ring::before{content:'';position:absolute;inset:-6px;border-radius:50%;border:1.5px solid transparent;border-top-color:var(--gold);animation:spin 2.4s linear infinite}
+    .btn-cam{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.5rem;width:150px;height:150px;border-radius:50%;background:var(--surface);border:1.5px solid rgba(201,152,74,.35);color:var(--gold-lt);cursor:pointer;-webkit-tap-highlight-color:transparent;position:relative;flex-shrink:0;font-family:'Noto Serif JP',serif}
+    .btn-cam::before{content:'';position:absolute;inset:-6px;border-radius:50%;border:1.5px solid transparent;border-top-color:var(--gold);animation:spin 2.4s linear infinite}
+    .btn-cam:active{background:var(--surface2)}
+    .btn-cam .ic{font-size:2.6rem;line-height:1}
+    .btn-cam .lb{font-size:.82rem;font-weight:700;letter-spacing:.06em}
     @keyframes spin{to{transform:rotate(360deg)}}
-    .scan-icon{font-size:3rem;opacity:.65}
-    .scan-hint{font-size:.85rem;color:var(--muted);text-align:center;line-height:1.85}
+    .scan-hint{font-size:.8rem;color:var(--muted);text-align:center;line-height:1.8}
     .manual-row{display:flex;gap:.5rem;width:100%;max-width:340px}
     .isbn-field{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'DM Mono',monospace;font-size:.82rem;padding:.65rem 1rem;outline:none;-webkit-appearance:none;transition:border-color .2s}
     .isbn-field:focus{border-color:var(--gold)}
@@ -66,9 +69,43 @@
     .btn-gold:active{background:var(--gold-lt)}
     .btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border)}
     .btn-ghost:active{border-color:var(--muted);color:var(--text)}
-    .lib-entry{display:flex;align-items:center;gap:.5rem;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:.7rem 1.3rem;color:var(--text);font-family:'Noto Serif JP',serif;font-size:.88rem;cursor:pointer;-webkit-tap-highlight-color:transparent}
+    .lib-entry{display:flex;align-items:center;gap:.5rem;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:.65rem 1.3rem;color:var(--text);font-family:'Noto Serif JP',serif;font-size:.86rem;cursor:pointer;-webkit-tap-highlight-color:transparent}
     .lib-entry:active{border-color:var(--gold)}
     .lib-entry .cnt{font-family:'DM Mono',monospace;font-size:.75rem;color:var(--gold)}
+
+    /* ══ CAMERA ══ */
+    #s-cam{background:#000;justify-content:flex-start;padding:0}
+    #cam-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000}
+    .cam-mask{position:absolute;inset:0;pointer-events:none;
+      background:rgba(0,0,0,.55);
+      -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite:xor;mask-composite:exclude;
+      padding:34vh 9vw}
+    .cam-frame{position:absolute;left:9vw;right:9vw;top:34vh;bottom:34vh;
+      border:1.5px solid rgba(233,192,122,.85);border-radius:12px;pointer-events:none}
+    .cam-frame::before,.cam-frame::after{content:'';position:absolute;left:8px;right:8px;height:2px;
+      background:linear-gradient(90deg,transparent,var(--gold-lt),transparent)}
+    .cam-frame::before{top:50%;animation:sweep 2s ease-in-out infinite alternate}
+    .cam-frame::after{display:none}
+    @keyframes sweep{from{top:12%}to{top:88%}}
+    .cam-bar{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;gap:.6rem;
+      padding:calc(env(safe-area-inset-top,0px) + .8rem) 1rem .8rem;
+      background:linear-gradient(180deg,rgba(0,0,0,.75),transparent);z-index:5}
+    .cam-bar .sp{flex:1}
+    .cam-btn{width:40px;height:40px;border-radius:50%;background:rgba(30,28,26,.85);border:1px solid var(--border);
+      color:var(--text);font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;
+      -webkit-tap-highlight-color:transparent}
+    .cam-btn.on{background:var(--gold);color:#1a1208;border-color:var(--gold)}
+    .cam-foot{position:absolute;bottom:0;left:0;right:0;text-align:center;z-index:5;
+      padding:1rem 1.5rem calc(env(safe-area-inset-bottom,0px) + 1.5rem);
+      background:linear-gradient(0deg,rgba(0,0,0,.8),transparent)}
+    .cam-msg{font-size:.85rem;color:#fff;line-height:1.8;text-shadow:0 1px 4px rgba(0,0,0,.9)}
+    .cam-msg .em{color:var(--gold-lt);font-weight:700}
+    .cam-sub{font-size:.72rem;color:rgba(255,255,255,.6);margin-top:.35rem}
+    .cam-err{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+      gap:1rem;padding:2rem;text-align:center;background:var(--bg);z-index:6}
+    .cam-err .t{font-size:1rem;font-weight:700;color:var(--err)}
+    .cam-err .d{font-size:.82rem;color:var(--muted);line-height:1.9}
 
     /* ── LOADING ── */
     #s-load{justify-content:center;gap:1.5rem}
@@ -215,18 +252,43 @@
     <div class="logo">書蔵管理システム</div>
     <div class="logo-sub">Home Library Manager</div>
   </div>
-  <div class="scan-ring"><div class="scan-icon">📚</div></div>
-  <p class="scan-hint">バーコードスキャナーで読み取るか<br>ISBNを手動入力してください<br>
-    <span style="font-size:.75rem;opacity:.7">※ 上段の 978… を読み取ってください</span></p>
+  <button class="btn-cam" onclick="openCamera()">
+    <span class="ic">📷</span>
+    <span class="lb">カメラで読み取る</span>
+  </button>
+  <p class="scan-hint">Bluetoothスキャナーでも読み取れます<br>
+    <span style="font-size:.74rem;opacity:.75">※ 本の上段バーコード（978…）が対象です</span></p>
   <div class="manual-row">
     <input class="isbn-field" id="manual-isbn" type="text"
-           inputmode="numeric" placeholder="ISBN を入力…" maxlength="17"
+           inputmode="numeric" placeholder="ISBN を手入力…" maxlength="17"
            onkeydown="if(event.key==='Enter')doLookup(this.value)">
     <button class="btn btn-gold" onclick="doLookup(document.getElementById('manual-isbn').value)">検索</button>
   </div>
   <button class="lib-entry" onclick="openLibrary()">
     <span>蔵書を見る</span><span class="cnt" id="lib-entry-cnt"></span>
   </button>
+</div>
+
+<!-- ══ CAMERA ══ -->
+<div id="s-cam" class="screen">
+  <video id="cam-video" playsinline muted autoplay></video>
+  <div class="cam-mask"></div>
+  <div class="cam-frame"></div>
+  <div class="cam-bar">
+    <button class="cam-btn" onclick="closeCamera()">✕</button>
+    <div class="sp"></div>
+    <button class="cam-btn" id="cam-torch" onclick="toggleTorch()" style="display:none">🔦</button>
+    <button class="cam-btn" id="cam-switch" onclick="switchCamera()" style="display:none">⇄</button>
+  </div>
+  <div class="cam-foot">
+    <div class="cam-msg" id="cam-msg">バーコードを枠内に収めてください</div>
+    <div class="cam-sub" id="cam-sub">続けて何冊でも読み取れます</div>
+  </div>
+  <div class="cam-err" id="cam-err" style="display:none">
+    <div class="t" id="cam-err-t">カメラを起動できません</div>
+    <div class="d" id="cam-err-d"></div>
+    <button class="btn btn-ghost" onclick="closeCamera()" style="padding:.6rem 1.4rem">戻る</button>
+  </div>
 </div>
 
 <!-- ══ LOADING ══ -->
@@ -258,12 +320,12 @@
     </div>
     <div class="action-row">
       <button class="btn btn-reg"  id="btn-reg"  onclick="doRegister()">登　録</button>
-      <button class="btn btn-skip" onclick="backToScan()">スキップ</button>
+      <button class="btn btn-skip" id="btn-skip" onclick="afterSheet()">スキップ</button>
     </div>
   </div>
 </div>
 
-<!-- ══ LIBRARY（シリーズ一覧） ══ -->
+<!-- ══ LIBRARY ══ -->
 <div id="s-library" class="screen">
   <div class="lib-head">
     <button class="icon-btn" onclick="backToScan()">←</button>
@@ -289,7 +351,7 @@
   <div class="lib-scroll" id="lib-list"></div>
 </div>
 
-<!-- ══ SERIES DETAIL（巻ごと） ══ -->
+<!-- ══ SERIES DETAIL ══ -->
 <div id="s-series" class="screen">
   <div class="lib-head">
     <button class="icon-btn" onclick="showScreen('s-library')">←</button>
@@ -319,9 +381,8 @@
   </div>
   <div class="guide">
     <div class="sec-label" style="margin-bottom:.4rem">使い方</div>
-    1. Eyoyo スキャナーをBluetooth接続<br>
-    2. 本の上段バーコード（978…）をスキャン<br>
-    3. 「登録」タップ → スプレッドシートに保存
+    カメラ、またはBluetoothスキャナーで<br>
+    本の上段バーコード（978…）を読み取ります
   </div>
 </div>
 
@@ -333,20 +394,27 @@
 //  Constants
 // ══════════════════════════════════════════════════════
 const LS_GAS = 'shozo_gas_url';
-const LS_TOK = 'shozo_token';      // localStorage: アプリを閉じてもログイン維持
+const LS_TOK = 'shozo_token';
 const LS_EXP = 'shozo_token_exp';
 const REQ_TIMEOUT = 25000;
+const ZXING_CDN = 'https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js';
 
 let cur = null, isDupe = false, busy = false;
 
 // 蔵書一覧の状態
-let libBooks  = null;      // サーバーから取得した生データ
-let libGroups = [];        // シリーズ単位に束ねたもの
-let libFilter = 'all';     // all | gap | single
-let libSort   = 'series';  // series | recent | count
+let libBooks  = null;
+let libGroups = [];
+let libFilter = 'all';
+let libSort   = 'series';
 let libQuery  = '';
 let curSeries = null;
 let searchTimer = null;
+
+// カメラの状態
+let camStream = null, camDetector = null, camRAF = null,
+    camReader = null, camActive = false, camTorchOn = false,
+    camFacing = 'environment', camLast = '', camLastAt = 0,
+    cameFromCam = false;
 
 // ══════════════════════════════════════════════════════
 //  Screen
@@ -354,16 +422,31 @@ let searchTimer = null;
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
-  const hideCog = ['s-settings','s-login','s-library','s-series'].includes(id);
+  const hideCog = ['s-settings','s-login','s-library','s-series','s-cam'].includes(id);
   document.getElementById('cog-btn').style.display = hideCog ? 'none' : '';
+  document.body.classList.toggle('cam-on', id === 's-cam');
 }
 function onBackdropTap(e) {
-  if (e.target === document.getElementById('s-confirm')) backToScan();
+  if (e.target === document.getElementById('s-confirm')) afterSheet();
 }
 function backToScan() {
   cur = null;
+  stopCamera();
   showScreen('s-scan');
   setTimeout(() => btBuf.focus(), 50);
+}
+
+// 確認シートを閉じたあとの遷移先。カメラ由来ならカメラへ戻り、連続スキャンを続ける
+function afterSheet() {
+  cur = null;
+  if (cameFromCam && camStream) {
+    showScreen('s-cam');
+    camSetMsg('バーコードを枠内に収めてください', '続けて何冊でも読み取れます');
+    camActive = true;
+    scanLoop();
+  } else {
+    backToScan();
+  }
 }
 
 // ══════════════════════════════════════════════════════
@@ -421,6 +504,7 @@ async function gasGet(params) {
 function forceRelogin(msg) {
   clearToken();
   libBooks = null;
+  stopCamera();
   toast(msg, 'ng');
   showScreen('s-login');
 }
@@ -470,6 +554,7 @@ async function doLogin() {
 function doLogout() {
   clearToken();
   libBooks = null;
+  stopCamera();
   document.getElementById('login-id').value = '';
   document.getElementById('login-pw').value = '';
   document.getElementById('login-err').textContent = '';
@@ -488,6 +573,261 @@ async function doPing() {
 }
 
 // ══════════════════════════════════════════════════════
+//  カメラでのバーコード読み取り
+//   BarcodeDetector（Android Chrome等）があればそれを使い、
+//   非対応（iOS Safari）なら ZXing を動的読み込みして代替する
+// ══════════════════════════════════════════════════════
+function camSetMsg(main, sub) {
+  document.getElementById('cam-msg').innerHTML = main;
+  document.getElementById('cam-sub').textContent = sub || '';
+}
+
+function camShowError(title, detail) {
+  document.getElementById('cam-err-t').textContent = title;
+  document.getElementById('cam-err-d').innerHTML = detail;
+  document.getElementById('cam-err').style.display = '';
+}
+
+async function openCamera() {
+  if (!getToken()) { forceRelogin('ログインが必要です'); return; }
+
+  document.getElementById('cam-err').style.display = 'none';
+  showScreen('s-cam');
+  camSetMsg('カメラを起動しています…', '');
+
+  // HTTPS でなければ getUserMedia は使えない
+  if (!window.isSecureContext) {
+    camShowError('安全な接続が必要です',
+      'カメラはHTTPS接続でのみ使えます。<br>https:// のURLで開き直してください。');
+    return;
+  }
+  if (!navigator.mediaDevices?.getUserMedia) {
+    camShowError('カメラ非対応',
+      'このブラウザはカメラ撮影に対応していません。<br>Safari や Chrome で開いてください。');
+    return;
+  }
+
+  try {
+    camStream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: { ideal: camFacing },
+        width:  { ideal: 1280 },
+        height: { ideal: 720 }
+      },
+      audio: false
+    });
+  } catch (e) {
+    const n = e && e.name;
+    if (n === 'NotAllowedError') {
+      camShowError('カメラの使用が許可されていません',
+        'ブラウザの設定でこのサイトのカメラを「許可」にしてから、<br>もう一度お試しください。');
+    } else if (n === 'NotFoundError') {
+      camShowError('カメラが見つかりません', '利用できるカメラが検出できませんでした。');
+    } else {
+      camShowError('カメラを起動できません', escapeHTML(String(e && e.message || e)));
+    }
+    return;
+  }
+
+  const video = document.getElementById('cam-video');
+  video.srcObject = camStream;
+  video.setAttribute('playsinline', '');   // iOSで全画面化させない
+  try { await video.play(); } catch (e) { /* 自動再生の失敗は無視 */ }
+
+  // 背面カメラが複数ある端末向けに切替ボタンを出す
+  try {
+    const devs = await navigator.mediaDevices.enumerateDevices();
+    const cams = devs.filter(d => d.kind === 'videoinput');
+    document.getElementById('cam-switch').style.display = cams.length > 1 ? '' : 'none';
+  } catch (e) { /* 権限次第で失敗する。無視してよい */ }
+
+  // ライト（対応端末のみ）
+  const track = camStream.getVideoTracks()[0];
+  const caps  = track.getCapabilities ? track.getCapabilities() : {};
+  document.getElementById('cam-torch').style.display = caps.torch ? '' : 'none';
+  camTorchOn = false;
+  document.getElementById('cam-torch').classList.remove('on');
+
+  // 読み取りエンジンの用意
+  try {
+    if ('BarcodeDetector' in window) {
+      const fmts = await window.BarcodeDetector.getSupportedFormats();
+      if (fmts.includes('ean_13')) {
+        camDetector = new window.BarcodeDetector({ formats: ['ean_13'] });
+      }
+    }
+    if (!camDetector) await initZXing();
+  } catch (e) {
+    camShowError('読み取り機能を初期化できません',
+      escapeHTML(String(e && e.message || e))
+      + '<br>通信環境をご確認のうえ、再度お試しください。');
+    stopCamera();
+    return;
+  }
+
+  camSetMsg('バーコードを枠内に収めてください', '続けて何冊でも読み取れます');
+  camLast = ''; camActive = true;
+  scanLoop();
+}
+
+// ZXing を CDN から読み込む（iOS Safari 用のフォールバック）
+function initZXing() {
+  if (window.ZXing) { camReader = new window.ZXing.MultiFormatReader(); return Promise.resolve(); }
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = ZXING_CDN;
+    s.onload = () => {
+      try {
+        const hints = new Map();
+        hints.set(window.ZXing.DecodeHintType.POSSIBLE_FORMATS,
+                  [window.ZXing.BarcodeFormat.EAN_13]);
+        hints.set(window.ZXing.DecodeHintType.TRY_HARDER, true);
+        camReader = new window.ZXing.MultiFormatReader();
+        camReader.setHints(hints);
+        resolve();
+      } catch (e) { reject(e); }
+    };
+    s.onerror = () => reject(new Error('読み取りライブラリを取得できませんでした'));
+    document.head.appendChild(s);
+  });
+}
+
+// 枠内だけを切り出して解析する。全画面を解析するより速く、誤検出も減る
+let camCanvas = null, camCtx = null;
+function grabFrame(video) {
+  const vw = video.videoWidth, vh = video.videoHeight;
+  if (!vw || !vh) return null;
+
+  // 画面の枠（左右9% / 上下34%）に相当する領域を映像側の座標に換算
+  const rx = 0.09, ry = 0.34;
+  const sx = Math.floor(vw * rx), sy = Math.floor(vh * ry);
+  const sw = Math.floor(vw * (1 - rx * 2)), sh = Math.floor(vh * (1 - ry * 2));
+
+  if (!camCanvas) { camCanvas = document.createElement('canvas'); camCtx = camCanvas.getContext('2d', { willReadFrequently: true }); }
+  camCanvas.width = sw; camCanvas.height = sh;
+  camCtx.drawImage(video, sx, sy, sw, sh, 0, 0, sw, sh);
+  return { w: sw, h: sh };
+}
+
+async function scanLoop() {
+  if (!camActive) return;
+  const video = document.getElementById('cam-video');
+
+  try {
+    if (video.readyState >= 2) {
+      const box = grabFrame(video);
+      if (box) {
+        let code = '';
+
+        if (camDetector) {
+          const hits = await camDetector.detect(camCanvas);
+          if (hits && hits.length) code = hits[0].rawValue || '';
+        } else if (camReader && window.ZXing) {
+          try {
+            const img  = camCtx.getImageData(0, 0, box.w, box.h);
+            const lum  = new window.ZXing.RGBLuminanceSource(
+                            toLuminance(img.data, box.w, box.h), box.w, box.h);
+            const bmp  = new window.ZXing.BinaryBitmap(
+                            new window.ZXing.HybridBinarizer(lum));
+            const res  = camReader.decode(bmp);
+            code = res ? res.getText() : '';
+          } catch (e) { /* NotFoundException は毎フレーム出るので無視 */ }
+          finally { if (camReader.reset) camReader.reset(); }
+        }
+
+        if (code) onCameraCode(code);
+      }
+    }
+  } catch (e) { /* 1フレームの失敗は無視して継続 */ }
+
+  camRAF = requestAnimationFrame(scanLoop);
+}
+
+// ZXing の RGBLuminanceSource は輝度配列を期待する
+function toLuminance(data, w, h) {
+  const out = new Uint8ClampedArray(w * h);
+  for (let i = 0, j = 0; i < data.length; i += 4, j++) {
+    out[j] = (data[i] * 306 + data[i + 1] * 601 + data[i + 2] * 117) >> 10;
+  }
+  return out;
+}
+
+// カメラが数字列を読み取ったときの処理
+function onCameraCode(raw) {
+  const d = String(raw).replace(/\D/g, '');
+  const now = Date.now();
+
+  // 価格バーコード（下段）は読み飛ばして、上段を探し続ける
+  if (d.length === 13 && d.startsWith('192')) {
+    if (now - camLastAt > 1200) {
+      camSetMsg('<span class="em">下段（価格）を読み取りました</span>',
+                '上段の 978 から始まるバーコードに向けてください');
+      camLastAt = now;
+      vibrate(40);
+    }
+    return;
+  }
+  if (d.length !== 13 || (!d.startsWith('978') && !d.startsWith('979'))) return;
+
+  // 同じ本を連続で拾わないようにする
+  if (d === camLast && now - camLastAt < 3000) return;
+  camLast = d; camLastAt = now;
+
+  camActive = false;
+  cancelAnimationFrame(camRAF);
+  vibrate([30, 40, 30]);
+  camSetMsg('<span class="em">読み取りました</span>', d);
+
+  cameFromCam = true;
+  doLookup(d);
+}
+
+function vibrate(p) { try { navigator.vibrate && navigator.vibrate(p); } catch (e) {} }
+
+async function toggleTorch() {
+  if (!camStream) return;
+  const track = camStream.getVideoTracks()[0];
+  try {
+    camTorchOn = !camTorchOn;
+    await track.applyConstraints({ advanced: [{ torch: camTorchOn }] });
+    document.getElementById('cam-torch').classList.toggle('on', camTorchOn);
+  } catch (e) {
+    toast('この端末ではライトを使えません', 'warn');
+  }
+}
+
+async function switchCamera() {
+  camFacing = (camFacing === 'environment') ? 'user' : 'environment';
+  stopCamera();
+  await openCamera();
+}
+
+function stopCamera() {
+  camActive = false;
+  if (camRAF) { cancelAnimationFrame(camRAF); camRAF = null; }
+  if (camStream) {
+    camStream.getTracks().forEach(t => { try { t.stop(); } catch (e) {} });
+    camStream = null;
+  }
+  const v = document.getElementById('cam-video');
+  if (v) v.srcObject = null;
+  camDetector = null;
+  camTorchOn = false;
+  document.getElementById('cam-torch').classList.remove('on');
+}
+
+function closeCamera() {
+  cameFromCam = false;
+  stopCamera();
+  backToScan();
+}
+
+// 画面が非表示になったらカメラを止める（バッテリー対策）
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && camStream) { cameFromCam = false; stopCamera(); }
+});
+
+// ══════════════════════════════════════════════════════
 //  Bluetooth Scanner
 // ══════════════════════════════════════════════════════
 const btBuf = document.getElementById('bt-buf');
@@ -495,6 +835,7 @@ let buf = '', timer = null;
 const SKIP_IDS = new Set(['manual-isbn','gas-input','login-id','login-pw','login-gas','lib-search']);
 
 document.addEventListener('touchstart', () => {
+  if (camActive) return;
   if (!SKIP_IDS.has(document.activeElement?.id)) btBuf.focus();
 }, { passive: true });
 
@@ -502,13 +843,13 @@ document.addEventListener('keydown', e => {
   if (SKIP_IDS.has(document.activeElement?.id)) return;
   if (e.key === 'Enter') {
     const d = buf.replace(/\D/g,'');
-    if (d.length >= 8) doLookup(buf.trim());
+    if (d.length >= 8) { cameFromCam = false; doLookup(buf.trim()); }
     buf = ''; clearTimeout(timer); return;
   }
   if (e.key.length === 1) {
     buf += e.key; clearTimeout(timer);
     const d = buf.replace(/\D/g,'');
-    if (d.length >= 13) { doLookup(d.slice(0,13)); buf = ''; }
+    if (d.length >= 13) { cameFromCam = false; doLookup(d.slice(0,13)); buf = ''; }
     else timer = setTimeout(() => { buf = ''; }, 1200);
   }
 });
@@ -522,7 +863,8 @@ async function doLookup(raw) {
 
   if (!isbn) return;
   if (isbn.length === 13 && isbn.startsWith('192')) {
-    toast('下段の価格バーコードです。上段の 978… を読み取ってください', 'warn'); return;
+    toast('下段の価格バーコードです。上段の 978… を読み取ってください', 'warn');
+    afterSheet(); return;
   }
   if (isbn.length !== 10 && isbn.length !== 13) {
     toast('ISBNとして認識できません: ' + isbn, 'warn'); return;
@@ -540,7 +882,7 @@ async function doLookup(raw) {
     const info = await gasGet({ action: 'book', isbn: isbn });
     if (!info.ok) {
       toast('❌ ' + (info.message || '書籍情報が見つかりませんでした'), 'ng');
-      backToScan(); return;
+      afterSheet(); return;
     }
     const owned = await fetchOwned(isbn, info.series);
     cur = info;
@@ -549,7 +891,7 @@ async function doLookup(raw) {
     showScreen('s-confirm');
   } catch (e) {
     if (e.message !== 'unauthorized') toast('❌ ' + e.message, 'ng');
-    backToScan();
+    afterSheet();
   } finally {
     busy = false;
   }
@@ -593,6 +935,7 @@ function renderConfirm(info, owned) {
   const btn = document.getElementById('btn-reg');
   btn.disabled = isDupe;
   btn.textContent = isDupe ? '登録済み' : '登　録';
+  document.getElementById('btn-skip').textContent = cameFromCam ? '次を読み取る' : 'スキップ';
 
   const ownedVols = (owned.ownedVolumes || []).filter(Number.isInteger);
   const curVol    = info.volume ? parseInt(info.volume, 10) : null;
@@ -647,9 +990,9 @@ async function doRegister() {
     if (res.status === 'added') {
       toast('✓ 登録しました', 'ok');
       document.getElementById('manual-isbn').value = '';
-      libBooks = null;              // 一覧のキャッシュを無効化
+      libBooks = null;
       refreshLibCount();
-      backToScan();
+      afterSheet();
     } else if (res.status === 'exists') {
       if (cur.volume || cur.series) {
         await gasGet({ action: 'update', isbn: cur.isbn,
@@ -659,7 +1002,7 @@ async function doRegister() {
         toast('この本は登録済みです');
       }
       libBooks = null;
-      backToScan();
+      afterSheet();
     } else {
       throw new Error(res.message || res.error || '登録に失敗しました');
     }
@@ -676,6 +1019,7 @@ async function doRegister() {
 // ══════════════════════════════════════════════════════
 async function openLibrary() {
   if (!getToken()) { forceRelogin('ログインが必要です'); return; }
+  stopCamera();
   showScreen('s-library');
   if (!libBooks) await loadLibrary();
   else renderLibrary();
@@ -721,11 +1065,10 @@ function groupSeries(books) {
     g.owned = [...new Set(vols)].sort((a, b) => a - b);
     g.max   = g.owned.length ? Math.max(...g.owned) : 0;
 
-    // 1巻から最大巻までのうち、持っていない巻を欠番とする
     g.missing = [];
     for (let v = 1; v <= g.max; v++) if (!g.owned.includes(v)) g.missing.push(v);
 
-    g.single  = g.owned.length === 0;               // 巻数のない単巻・小説など
+    g.single  = g.owned.length === 0;
     g.cover   = (g.items.find(b => b.cover) || {}).cover || '';
     g.lastAt  = g.items.reduce((m, b) => (b.date && b.date > m ? b.date : m), '');
     out.push(g);
@@ -774,7 +1117,6 @@ function renderLibrary() {
   const list = visibleGroups();
   const el   = document.getElementById('lib-list');
 
-  // 統計
   const totalBooks = libBooks ? libBooks.length : 0;
   const gapSeries  = libGroups.filter(g => g.missing.length > 0);
   const gapVols    = gapSeries.reduce((n, g) => n + g.missing.length, 0);
@@ -796,7 +1138,6 @@ function renderLibrary() {
       ? '<img src="' + escapeHTML(g.cover) + '" alt="" onerror="this.parentNode.textContent=\'📖\'">'
       : '📖';
 
-    // 巻チップは30個まで。それ以上は省略表示にする
     let chips = '';
     if (!g.single) {
       const shown = Math.min(g.max, 30);
@@ -847,7 +1188,6 @@ function renderSeries() {
     + (g.single ? '' : ' / 最新 ' + g.max + '巻')
     + (g.missing.length ? ' / <span class="gap-txt">抜け ' + g.missing.join(', ') + '巻</span>' : '');
 
-  // 所持している巻と、欠番の巻を1〜最大巻まで混ぜて並べる
   const rows = [];
   const byVol = new Map();
   g.items.forEach(b => {
@@ -876,7 +1216,7 @@ function volRow(b, v) {
   const sub   = [b.isbn, b.date].filter(Boolean).join('  ');
   const isbnJs = JSON.stringify(String(b.isbn)).replace(/"/g,'&quot;');
 
-  return '<div class="vol-row" id="row-' + escapeHTML(b.isbn) + '">'
+  return '<div class="vol-row">'
        +   '<div class="vol-thumb">' + cover + '</div>'
        +   '<div class="vol-body">'
        +     '<div class="vol-no">' + escapeHTML(label) + '</div>'
@@ -886,7 +1226,7 @@ function volRow(b, v) {
        + '</div>';
 }
 
-// 2段階タップで削除（誤操作防止。ネイティブの確認ダイアログは使わない）
+// 2段階タップで削除（誤操作防止）
 let armedBtn = null, armTimer = null;
 function armDelete(btn, isbn) {
   if (armedBtn === btn) {
@@ -911,13 +1251,12 @@ async function doDelete(btn, isbn) {
     const res = await gasGet({ action: 'delete', isbn: isbn });
     if (res.status === 'deleted') {
       toast('✓ 削除しました', 'ok');
-      // ローカル側も更新して再描画（サーバー再取得は不要）
       libBooks = libBooks.filter(b => String(b.isbn) !== String(isbn));
       libGroups = groupSeries(libBooks);
       updateLibEntryCount();
       const g = libGroups.find(x => x.name === (curSeries && curSeries.name));
       if (g) { curSeries = g; renderSeries(); }
-      else   { renderLibrary(); showScreen('s-library'); }
+      else   { showScreen('s-library'); }
       renderLibrary();
     } else {
       throw new Error(res.message || '削除できませんでした');
