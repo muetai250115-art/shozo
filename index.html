@@ -72,21 +72,20 @@
     .lib-entry{display:flex;align-items:center;gap:.5rem;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:.65rem 1.3rem;color:var(--text);font-family:'Noto Serif JP',serif;font-size:.86rem;cursor:pointer;-webkit-tap-highlight-color:transparent}
     .lib-entry:active{border-color:var(--gold)}
     .lib-entry .cnt{font-family:'DM Mono',monospace;font-size:.75rem;color:var(--gold)}
+    .bt-badge{font-size:.68rem;color:var(--muted);display:flex;align-items:center;gap:.35rem}
+    .bt-badge .dot{width:6px;height:6px;border-radius:50%;background:var(--ok)}
 
     /* ══ CAMERA ══ */
     #s-cam{background:#000;justify-content:flex-start;padding:0}
     #cam-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000}
-    .cam-mask{position:absolute;inset:0;pointer-events:none;
-      background:rgba(0,0,0,.55);
+    .cam-mask{position:absolute;inset:0;pointer-events:none;background:rgba(0,0,0,.55);
       -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-      -webkit-mask-composite:xor;mask-composite:exclude;
-      padding:34vh 9vw}
+      -webkit-mask-composite:xor;mask-composite:exclude;padding:34vh 9vw}
     .cam-frame{position:absolute;left:9vw;right:9vw;top:34vh;bottom:34vh;
       border:1.5px solid rgba(233,192,122,.85);border-radius:12px;pointer-events:none}
-    .cam-frame::before,.cam-frame::after{content:'';position:absolute;left:8px;right:8px;height:2px;
-      background:linear-gradient(90deg,transparent,var(--gold-lt),transparent)}
-    .cam-frame::before{top:50%;animation:sweep 2s ease-in-out infinite alternate}
-    .cam-frame::after{display:none}
+    .cam-frame::before{content:'';position:absolute;left:8px;right:8px;height:2px;
+      background:linear-gradient(90deg,transparent,var(--gold-lt),transparent);
+      top:50%;animation:sweep 2s ease-in-out infinite alternate}
     @keyframes sweep{from{top:12%}to{top:88%}}
     .cam-bar{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;gap:.6rem;
       padding:calc(env(safe-area-inset-top,0px) + .8rem) 1rem .8rem;
@@ -186,21 +185,40 @@
     .vol-no{font-size:.85rem;font-weight:700}
     .vol-no.missing{color:var(--warn)}
     .vol-sub{font-size:.64rem;color:var(--muted);font-family:'DM Mono',monospace;margin-top:.18rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .vol-raw{font-size:.63rem;color:var(--muted);opacity:.7;margin-top:.12rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .btn-del{flex-shrink:0;background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:.35rem .55rem;font-family:'Noto Serif JP',serif;font-size:.7rem;cursor:pointer;-webkit-tap-highlight-color:transparent}
     .btn-del.arm{border-color:var(--err);color:var(--err);font-weight:700}
     .empty{text-align:center;color:var(--muted);font-size:.82rem;padding:3rem 1rem;line-height:2}
 
+    /* シリーズ名の修正パネル */
+    .rename-box{margin:0 1rem .7rem;background:var(--surface);border:1px solid rgba(201,152,74,.3);border-radius:12px;padding:.8rem;display:none;flex-direction:column;gap:.6rem}
+    .rename-box.on{display:flex}
+    .rename-box .hint{font-size:.7rem;color:var(--muted);line-height:1.7}
+    .rename-row{display:flex;gap:.5rem}
+    .rename-row input{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:9px;color:var(--text);font-family:'Noto Serif JP',serif;font-size:.84rem;padding:.55rem .8rem;outline:none;-webkit-appearance:none}
+    .rename-row input:focus{border-color:var(--gold)}
+    .sug-row{display:flex;flex-wrap:wrap;gap:.3rem}
+    .sug{font-size:.72rem;padding:.25rem .6rem;border-radius:14px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;-webkit-tap-highlight-color:transparent}
+    .sug:active{border-color:var(--gold);color:var(--text)}
+
     /* ── SETTINGS ── */
-    #s-settings{align-items:stretch;padding:2rem 1.5rem;gap:1.5rem;overflow-y:auto}
+    #s-settings{align-items:stretch;padding:2rem 1.5rem;gap:1.4rem;overflow-y:auto}
     .settings-head{display:flex;align-items:center;gap:1rem}
     .settings-title{font-size:1.3rem;font-weight:700;color:var(--gold-lt)}
     .field label{display:block;font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:.45rem}
     .field input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'DM Mono',monospace;font-size:.75rem;padding:.75rem 1rem;outline:none;-webkit-appearance:none}
     .field input:focus{border-color:var(--gold)}
-    .guide{font-size:.78rem;color:var(--muted);line-height:1.9;margin-top:auto}
+    .guide{font-size:.78rem;color:var(--muted);line-height:1.9}
     .sep{border-top:1px solid var(--border);padding-top:1.2rem}
     .btn-danger{background:rgba(224,87,87,.12);color:var(--err);border:1px solid rgba(224,87,87,.3);padding:.55rem 1.1rem;border-radius:10px;font-family:'Noto Serif JP',serif;font-size:.82rem;cursor:pointer;-webkit-tap-highlight-color:transparent}
     .btn-danger:active{background:rgba(224,87,87,.22)}
+    .sw-row{display:flex;align-items:center;gap:.8rem;cursor:pointer;-webkit-tap-highlight-color:transparent}
+    .sw{width:46px;height:26px;border-radius:13px;background:var(--surface2);border:1px solid var(--border);position:relative;flex-shrink:0;transition:background .18s}
+    .sw::after{content:'';position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:var(--muted);transition:transform .18s,background .18s}
+    .sw.on{background:rgba(201,152,74,.28);border-color:var(--gold)}
+    .sw.on::after{transform:translateX(20px);background:var(--gold)}
+    .sw-lb{font-size:.85rem}
+    .sw-hint{font-size:.71rem;color:var(--muted);line-height:1.7;margin-top:.45rem}
 
     /* ── COG & TOAST ── */
     .cog{position:fixed;top:1rem;right:1rem;width:36px;height:36px;border-radius:50%;background:var(--surface);border:1px solid var(--border);color:var(--muted);font-size:.95rem;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:8000;-webkit-tap-highlight-color:transparent;transition:all .2s}
@@ -211,12 +229,14 @@
     .toast.ng{border-color:rgba(224,87,87,.4)}
     .toast.warn{border-color:rgba(217,164,65,.45)}
 
-    #bt-buf{position:fixed;left:-9999px;opacity:0;font-size:16px}
+    /* スキャナー受信用の隠し入力。readonly にしてソフトキーボードを抑止する */
+    #bt-buf{position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0;font-size:16px;border:0;padding:0}
   </style>
 </head>
 <body>
 
-<input id="bt-buf" type="text" autocomplete="off" autocorrect="off" autocapitalize="off">
+<input id="bt-buf" type="text" readonly inputmode="none"
+       autocomplete="off" autocorrect="off" autocapitalize="off" aria-hidden="true" tabindex="-1">
 
 <!-- ══ LOGIN ══ -->
 <div id="s-login" class="screen active">
@@ -256,8 +276,7 @@
     <span class="ic">📷</span>
     <span class="lb">カメラで読み取る</span>
   </button>
-  <p class="scan-hint">Bluetoothスキャナーでも読み取れます<br>
-    <span style="font-size:.74rem;opacity:.75">※ 本の上段バーコード（978…）が対象です</span></p>
+  <div class="bt-badge" id="bt-badge" style="display:none"><span class="dot"></span>Bluetoothスキャナー待機中</div>
   <div class="manual-row">
     <input class="isbn-field" id="manual-isbn" type="text"
            inputmode="numeric" placeholder="ISBN を手入力…" maxlength="17"
@@ -356,6 +375,16 @@
   <div class="lib-head">
     <button class="icon-btn" onclick="showScreen('s-library')">←</button>
     <div class="lib-title" id="ser-title">—</div>
+    <button class="icon-btn" onclick="toggleRename()" title="シリーズ名を修正">✎</button>
+  </div>
+  <div class="rename-box" id="rename-box">
+    <div class="hint">この名前を変えると、下の全巻のシリーズ名がまとめて書き換わります。<br>
+      既にあるシリーズ名と同じにすれば、そちらに統合されます。</div>
+    <div class="sug-row" id="rename-sug"></div>
+    <div class="rename-row">
+      <input id="rename-input" type="text" placeholder="新しいシリーズ名">
+      <button class="btn btn-gold" id="rename-btn" onclick="doRename()">変更</button>
+    </div>
   </div>
   <div class="lib-stats" id="ser-stats"></div>
   <div class="lib-scroll" id="ser-list"></div>
@@ -372,14 +401,27 @@
     <input id="gas-input" type="url" placeholder="https://script.google.com/macros/s/…/exec">
   </div>
   <button class="btn btn-gold" onclick="saveSettings()" style="align-self:flex-start;padding:.7rem 1.5rem">保存</button>
+
+  <div class="sep">
+    <div class="sec-label">バーコードスキャナー</div>
+    <div class="sw-row" onclick="toggleBtMode()">
+      <div class="sw" id="bt-sw"></div>
+      <div class="sw-lb">Bluetoothスキャナーを使う</div>
+    </div>
+    <div class="sw-hint">オフにすると、画面をタップしてもキーボードが出なくなります。<br>
+      スマホのカメラだけで使う場合はオフのままで構いません。</div>
+  </div>
+
   <div class="sep">
     <div class="sec-label">接続確認</div>
     <button class="btn btn-ghost" onclick="doPing()" style="padding:.55rem 1.1rem">サーバーに接続してみる</button>
   </div>
+
   <div class="sep">
     <button class="btn-danger" onclick="doLogout()">ログアウト</button>
   </div>
-  <div class="guide">
+
+  <div class="guide sep">
     <div class="sec-label" style="margin-bottom:.4rem">使い方</div>
     カメラ、またはBluetoothスキャナーで<br>
     本の上段バーコード（978…）を読み取ります
@@ -396,6 +438,7 @@
 const LS_GAS = 'shozo_gas_url';
 const LS_TOK = 'shozo_token';
 const LS_EXP = 'shozo_token_exp';
+const LS_BT  = 'shozo_bt_mode';     // Bluetoothスキャナーを使うか
 const REQ_TIMEOUT = 25000;
 const ZXING_CDN = 'https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js';
 
@@ -425,6 +468,7 @@ function showScreen(id) {
   const hideCog = ['s-settings','s-login','s-library','s-series','s-cam'].includes(id);
   document.getElementById('cog-btn').style.display = hideCog ? 'none' : '';
   document.body.classList.toggle('cam-on', id === 's-cam');
+  syncScannerFocus(id);
 }
 function onBackdropTap(e) {
   if (e.target === document.getElementById('s-confirm')) afterSheet();
@@ -433,10 +477,9 @@ function backToScan() {
   cur = null;
   stopCamera();
   showScreen('s-scan');
-  setTimeout(() => btBuf.focus(), 50);
 }
 
-// 確認シートを閉じたあとの遷移先。カメラ由来ならカメラへ戻り、連続スキャンを続ける
+// 確認シートを閉じたあとの遷移先。カメラ由来ならカメラへ戻って連続スキャンを続ける
 function afterSheet() {
   cur = null;
   if (cameFromCam && camStream) {
@@ -448,6 +491,59 @@ function afterSheet() {
     backToScan();
   }
 }
+
+// ══════════════════════════════════════════════════════
+//  Bluetoothスキャナー モード
+//   隠し入力にフォーカスするのはこのモードのときだけ。
+//   readonly + inputmode=none なので、フォーカスしてもキーボードは出ない。
+// ══════════════════════════════════════════════════════
+const btBuf = document.getElementById('bt-buf');
+let buf = '', keyTimer = null;
+const SKIP_IDS = new Set(['manual-isbn','gas-input','login-id','login-pw','login-gas',
+                          'lib-search','rename-input']);
+
+function btMode()      { return localStorage.getItem(LS_BT) === '1'; }
+function setBtMode(on) {
+  localStorage.setItem(LS_BT, on ? '1' : '0');
+  document.getElementById('bt-sw').classList.toggle('on', on);
+  document.getElementById('bt-badge').style.display = on ? '' : 'none';
+  if (!on) { try { btBuf.blur(); } catch (e) {} }
+  syncScannerFocus();
+}
+function toggleBtMode() {
+  const next = !btMode();
+  setBtMode(next);
+  toast(next ? 'Bluetoothスキャナーを有効にしました'
+             : 'Bluetoothスキャナーを無効にしました', 'ok');
+}
+
+// スキャン画面にいて、かつBTモードのときだけ受信用にフォーカスする
+function syncScannerFocus(screenId) {
+  const id = screenId || (document.querySelector('.screen.active') || {}).id;
+  if (btMode() && id === 's-scan' && !camActive) {
+    setTimeout(() => { try { btBuf.focus({ preventScroll: true }); } catch (e) {} }, 30);
+  } else {
+    if (document.activeElement === btBuf) { try { btBuf.blur(); } catch (e) {} }
+  }
+}
+
+document.addEventListener('keydown', e => {
+  if (!btMode()) return;                                   // モードOFFなら何もしない
+  if (SKIP_IDS.has(document.activeElement?.id)) return;    // 手入力欄では拾わない
+  if (camActive) return;                                   // カメラ中は無効
+
+  if (e.key === 'Enter') {
+    const d = buf.replace(/\D/g,'');
+    if (d.length >= 8) { cameFromCam = false; doLookup(buf.trim()); }
+    buf = ''; clearTimeout(keyTimer); return;
+  }
+  if (e.key.length === 1) {
+    buf += e.key; clearTimeout(keyTimer);
+    const d = buf.replace(/\D/g,'');
+    if (d.length >= 13) { cameFromCam = false; doLookup(d.slice(0,13)); buf = ''; }
+    else keyTimer = setTimeout(() => { buf = ''; }, 1200);
+  }
+});
 
 // ══════════════════════════════════════════════════════
 //  Auth
@@ -470,7 +566,7 @@ function gasURL() { return localStorage.getItem(LS_GAS) || ''; }
 
 async function fetchJSON(url) {
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), REQ_TIMEOUT);
+  const t = setTimeout(() => ctrl.abort(), REQ_TIMEOUT);
   try {
     const r = await fetch(url, { signal: ctrl.signal });
     if (!r.ok) throw new Error('サーバー応答エラー (' + r.status + ')');
@@ -478,9 +574,7 @@ async function fetchJSON(url) {
   } catch (e) {
     if (e.name === 'AbortError') throw new Error('タイムアウトしました');
     throw e;
-  } finally {
-    clearTimeout(timer);
-  }
+  } finally { clearTimeout(t); }
 }
 
 async function gasGet(params) {
@@ -531,8 +625,8 @@ async function doLogin() {
     if (res.token) {
       setToken(res.token, res.expires);
       document.getElementById('login-pw').value = '';
+      document.activeElement?.blur();
       showScreen('s-scan');
-      setTimeout(() => btBuf.focus(), 50);
       refreshLibCount();
     } else if (res.error === 'locked') {
       err.textContent = res.message || 'ロックされています';
@@ -574,14 +668,11 @@ async function doPing() {
 
 // ══════════════════════════════════════════════════════
 //  カメラでのバーコード読み取り
-//   BarcodeDetector（Android Chrome等）があればそれを使い、
-//   非対応（iOS Safari）なら ZXing を動的読み込みして代替する
 // ══════════════════════════════════════════════════════
 function camSetMsg(main, sub) {
   document.getElementById('cam-msg').innerHTML = main;
   document.getElementById('cam-sub').textContent = sub || '';
 }
-
 function camShowError(title, detail) {
   document.getElementById('cam-err-t').textContent = title;
   document.getElementById('cam-err-d').innerHTML = detail;
@@ -591,11 +682,12 @@ function camShowError(title, detail) {
 async function openCamera() {
   if (!getToken()) { forceRelogin('ログインが必要です'); return; }
 
+  try { document.activeElement?.blur(); } catch (e) {}
   document.getElementById('cam-err').style.display = 'none';
+  camActive = false;
   showScreen('s-cam');
   camSetMsg('カメラを起動しています…', '');
 
-  // HTTPS でなければ getUserMedia は使えない
   if (!window.isSecureContext) {
     camShowError('安全な接続が必要です',
       'カメラはHTTPS接続でのみ使えます。<br>https:// のURLで開き直してください。');
@@ -609,11 +701,8 @@ async function openCamera() {
 
   try {
     camStream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: { ideal: camFacing },
-        width:  { ideal: 1280 },
-        height: { ideal: 720 }
-      },
+      video: { facingMode: { ideal: camFacing },
+               width: { ideal: 1280 }, height: { ideal: 720 } },
       audio: false
     });
   } catch (e) {
@@ -631,24 +720,21 @@ async function openCamera() {
 
   const video = document.getElementById('cam-video');
   video.srcObject = camStream;
-  video.setAttribute('playsinline', '');   // iOSで全画面化させない
-  try { await video.play(); } catch (e) { /* 自動再生の失敗は無視 */ }
+  video.setAttribute('playsinline', '');
+  try { await video.play(); } catch (e) {}
 
-  // 背面カメラが複数ある端末向けに切替ボタンを出す
   try {
     const devs = await navigator.mediaDevices.enumerateDevices();
     const cams = devs.filter(d => d.kind === 'videoinput');
     document.getElementById('cam-switch').style.display = cams.length > 1 ? '' : 'none';
-  } catch (e) { /* 権限次第で失敗する。無視してよい */ }
+  } catch (e) {}
 
-  // ライト（対応端末のみ）
   const track = camStream.getVideoTracks()[0];
   const caps  = track.getCapabilities ? track.getCapabilities() : {};
   document.getElementById('cam-torch').style.display = caps.torch ? '' : 'none';
   camTorchOn = false;
   document.getElementById('cam-torch').classList.remove('on');
 
-  // 読み取りエンジンの用意
   try {
     if ('BarcodeDetector' in window) {
       const fmts = await window.BarcodeDetector.getSupportedFormats();
@@ -670,13 +756,10 @@ async function openCamera() {
   scanLoop();
 }
 
-// ZXing を CDN から読み込む（iOS Safari 用のフォールバック）
 function initZXing() {
-  if (window.ZXing) { camReader = new window.ZXing.MultiFormatReader(); return Promise.resolve(); }
+  if (window.ZXing && camReader) return Promise.resolve();
   return new Promise((resolve, reject) => {
-    const s = document.createElement('script');
-    s.src = ZXING_CDN;
-    s.onload = () => {
+    const start = () => {
       try {
         const hints = new Map();
         hints.set(window.ZXing.DecodeHintType.POSSIBLE_FORMATS,
@@ -687,23 +770,26 @@ function initZXing() {
         resolve();
       } catch (e) { reject(e); }
     };
+    if (window.ZXing) { start(); return; }
+    const s = document.createElement('script');
+    s.src = ZXING_CDN;
+    s.onload = start;
     s.onerror = () => reject(new Error('読み取りライブラリを取得できませんでした'));
     document.head.appendChild(s);
   });
 }
 
-// 枠内だけを切り出して解析する。全画面を解析するより速く、誤検出も減る
 let camCanvas = null, camCtx = null;
 function grabFrame(video) {
   const vw = video.videoWidth, vh = video.videoHeight;
   if (!vw || !vh) return null;
-
-  // 画面の枠（左右9% / 上下34%）に相当する領域を映像側の座標に換算
   const rx = 0.09, ry = 0.34;
   const sx = Math.floor(vw * rx), sy = Math.floor(vh * ry);
   const sw = Math.floor(vw * (1 - rx * 2)), sh = Math.floor(vh * (1 - ry * 2));
-
-  if (!camCanvas) { camCanvas = document.createElement('canvas'); camCtx = camCanvas.getContext('2d', { willReadFrequently: true }); }
+  if (!camCanvas) {
+    camCanvas = document.createElement('canvas');
+    camCtx = camCanvas.getContext('2d', { willReadFrequently: true });
+  }
   camCanvas.width = sw; camCanvas.height = sh;
   camCtx.drawImage(video, sx, sy, sw, sh, 0, 0, sw, sh);
   return { w: sw, h: sh };
@@ -712,38 +798,32 @@ function grabFrame(video) {
 async function scanLoop() {
   if (!camActive) return;
   const video = document.getElementById('cam-video');
-
   try {
     if (video.readyState >= 2) {
       const box = grabFrame(video);
       if (box) {
         let code = '';
-
         if (camDetector) {
           const hits = await camDetector.detect(camCanvas);
           if (hits && hits.length) code = hits[0].rawValue || '';
         } else if (camReader && window.ZXing) {
           try {
-            const img  = camCtx.getImageData(0, 0, box.w, box.h);
-            const lum  = new window.ZXing.RGBLuminanceSource(
-                            toLuminance(img.data, box.w, box.h), box.w, box.h);
-            const bmp  = new window.ZXing.BinaryBitmap(
-                            new window.ZXing.HybridBinarizer(lum));
-            const res  = camReader.decode(bmp);
+            const img = camCtx.getImageData(0, 0, box.w, box.h);
+            const lum = new window.ZXing.RGBLuminanceSource(
+                          toLuminance(img.data, box.w, box.h), box.w, box.h);
+            const bmp = new window.ZXing.BinaryBitmap(new window.ZXing.HybridBinarizer(lum));
+            const res = camReader.decode(bmp);
             code = res ? res.getText() : '';
-          } catch (e) { /* NotFoundException は毎フレーム出るので無視 */ }
+          } catch (e) { /* 未検出は毎フレーム起きるので無視 */ }
           finally { if (camReader.reset) camReader.reset(); }
         }
-
         if (code) onCameraCode(code);
       }
     }
-  } catch (e) { /* 1フレームの失敗は無視して継続 */ }
-
+  } catch (e) {}
   camRAF = requestAnimationFrame(scanLoop);
 }
 
-// ZXing の RGBLuminanceSource は輝度配列を期待する
 function toLuminance(data, w, h) {
   const out = new Uint8ClampedArray(w * h);
   for (let i = 0, j = 0; i < data.length; i += 4, j++) {
@@ -752,32 +832,26 @@ function toLuminance(data, w, h) {
   return out;
 }
 
-// カメラが数字列を読み取ったときの処理
 function onCameraCode(raw) {
   const d = String(raw).replace(/\D/g, '');
   const now = Date.now();
 
-  // 価格バーコード（下段）は読み飛ばして、上段を探し続ける
   if (d.length === 13 && d.startsWith('192')) {
     if (now - camLastAt > 1200) {
       camSetMsg('<span class="em">下段（価格）を読み取りました</span>',
                 '上段の 978 から始まるバーコードに向けてください');
-      camLastAt = now;
-      vibrate(40);
+      camLastAt = now; vibrate(40);
     }
     return;
   }
   if (d.length !== 13 || (!d.startsWith('978') && !d.startsWith('979'))) return;
-
-  // 同じ本を連続で拾わないようにする
   if (d === camLast && now - camLastAt < 3000) return;
-  camLast = d; camLastAt = now;
 
+  camLast = d; camLastAt = now;
   camActive = false;
   cancelAnimationFrame(camRAF);
   vibrate([30, 40, 30]);
   camSetMsg('<span class="em">読み取りました</span>', d);
-
   cameFromCam = true;
   doLookup(d);
 }
@@ -791,9 +865,7 @@ async function toggleTorch() {
     camTorchOn = !camTorchOn;
     await track.applyConstraints({ advanced: [{ torch: camTorchOn }] });
     document.getElementById('cam-torch').classList.toggle('on', camTorchOn);
-  } catch (e) {
-    toast('この端末ではライトを使えません', 'warn');
-  }
+  } catch (e) { toast('この端末ではライトを使えません', 'warn'); }
 }
 
 async function switchCamera() {
@@ -822,36 +894,8 @@ function closeCamera() {
   backToScan();
 }
 
-// 画面が非表示になったらカメラを止める（バッテリー対策）
 document.addEventListener('visibilitychange', () => {
   if (document.hidden && camStream) { cameFromCam = false; stopCamera(); }
-});
-
-// ══════════════════════════════════════════════════════
-//  Bluetooth Scanner
-// ══════════════════════════════════════════════════════
-const btBuf = document.getElementById('bt-buf');
-let buf = '', timer = null;
-const SKIP_IDS = new Set(['manual-isbn','gas-input','login-id','login-pw','login-gas','lib-search']);
-
-document.addEventListener('touchstart', () => {
-  if (camActive) return;
-  if (!SKIP_IDS.has(document.activeElement?.id)) btBuf.focus();
-}, { passive: true });
-
-document.addEventListener('keydown', e => {
-  if (SKIP_IDS.has(document.activeElement?.id)) return;
-  if (e.key === 'Enter') {
-    const d = buf.replace(/\D/g,'');
-    if (d.length >= 8) { cameFromCam = false; doLookup(buf.trim()); }
-    buf = ''; clearTimeout(timer); return;
-  }
-  if (e.key.length === 1) {
-    buf += e.key; clearTimeout(timer);
-    const d = buf.replace(/\D/g,'');
-    if (d.length >= 13) { cameFromCam = false; doLookup(d.slice(0,13)); buf = ''; }
-    else timer = setTimeout(() => { buf = ''; }, 1200);
-  }
 });
 
 // ══════════════════════════════════════════════════════
@@ -874,6 +918,7 @@ async function doLookup(raw) {
   }
   if (!getToken()) { forceRelogin('ログインが必要です'); return; }
 
+  try { document.activeElement?.blur(); } catch (e) {}
   busy = true;
   showScreen('s-load');
   document.getElementById('load-isbn-txt').textContent = 'ISBN: ' + isbn;
@@ -884,6 +929,9 @@ async function doLookup(raw) {
       toast('❌ ' + (info.message || '書籍情報が見つかりませんでした'), 'ng');
       afterSheet(); return;
     }
+    // 既存の蔵書に表記ゆれ違いの同シリーズがあれば、そちらの名前に寄せる
+    info.series = alignSeriesName(info.series);
+
     const owned = await fetchOwned(isbn, info.series);
     cur = info;
     isDupe = !!owned.isDuplicate;
@@ -899,10 +947,31 @@ async function doLookup(raw) {
 
 async function fetchOwned(isbn, seriesName) {
   try {
-    return await gasGet({ action: 'check', isbn: isbn, series: seriesName || '' });
+    const res = await gasGet({ action: 'check', isbn: isbn, series: seriesName || '' });
+    // サーバーは完全一致で集計するため、手元のデータで補完する
+    const local = localOwnedVolumes(seriesName);
+    const merged = [...new Set([...(res.ownedVolumes || []), ...local])]
+                     .filter(Number.isInteger).sort((a,b) => a-b);
+    return { isDuplicate: !!res.isDuplicate, ownedVolumes: merged, series: seriesName };
   } catch {
-    return { isDuplicate: false, ownedVolumes: [] };
+    return { isDuplicate: false, ownedVolumes: localOwnedVolumes(seriesName) };
   }
+}
+
+// 表記ゆれを吸収して、手元のデータから同シリーズの所持巻を集める
+function localOwnedVolumes(seriesName) {
+  if (!libGroups.length || !seriesName) return [];
+  const k = seriesKey(seriesName);
+  const g = libGroups.find(x => x.key === k);
+  return g ? g.owned.slice() : [];
+}
+
+// 既に同じシリーズが登録されていれば、その表記に合わせる
+function alignSeriesName(name) {
+  if (!name || !libGroups.length) return name;
+  const k = seriesKey(name);
+  const g = libGroups.find(x => x.key === k);
+  return g ? g.name : name;
 }
 
 // ══════════════════════════════════════════════════════
@@ -1015,10 +1084,40 @@ async function doRegister() {
 }
 
 // ══════════════════════════════════════════════════════
+//  シリーズ名の正規化
+//   NDLの書名は巻ごとに表記が揺れる（全角/半角、記号、空白、中黒など）。
+//   そのままだと同じ作品が別シリーズに分かれてしまうので、
+//   比較用のキーを作って束ねる。表示名は実際の登録値をそのまま使う。
+// ══════════════════════════════════════════════════════
+function seriesKey(s) {
+  let t = String(s == null ? '' : s).trim();
+  if (!t) return '';
+
+  // 全角英数→半角、互換文字の統一（①→1 など）
+  try { t = t.normalize('NFKC'); } catch (e) {}
+
+  t = t.toLowerCase();
+
+  // カタカナ→ひらがな（「ヴ」「ヶ」などの表記差を吸収）
+  t = t.replace(/[\u30A1-\u30F6]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60));
+
+  // 空白・記号を全部落とす
+  t = t.replace(/[\s\u3000]/g, '');
+  t = t.replace(/[・･·]/g, '');
+  t = t.replace(/[!！?？~〜～ー―–—\-‐_'’"“”「」『』（）()\[\]［］【】〈〉《》,，、.．。:：;；\/／\\|｜*＊+＋#＃&＆%％@＠^]/g, '');
+
+  // 末尾に残った巻次表記（vol3 / 第3巻 / 3 など）を除去
+  t = t.replace(/(vol|volume|v)?\d+(巻|卷|冊)?$/,'');
+
+  return t;
+}
+
+// ══════════════════════════════════════════════════════
 //  Library — 取得とグルーピング
 // ══════════════════════════════════════════════════════
 async function openLibrary() {
   if (!getToken()) { forceRelogin('ログインが必要です'); return; }
+  try { document.activeElement?.blur(); } catch (e) {}
   stopCamera();
   showScreen('s-library');
   if (!libBooks) await loadLibrary();
@@ -1044,21 +1143,29 @@ async function loadLibrary(force) {
   }
 }
 
-// 1冊ずつのレコードをシリーズ単位に束ね、欠番を算出する
+// 正規化キーで束ね、欠番を算出する
 function groupSeries(books) {
   const map = new Map();
 
   books.forEach(b => {
-    const key = String(b.series || b.title || '不明').trim();
-    if (!map.has(key)) map.set(key, { name: key, items: [], author: '', publisher: '' });
+    const raw = String(b.series || b.title || '不明').trim();
+    const key = seriesKey(raw) || raw;
+    if (!map.has(key)) map.set(key, { key: key, items: [], names: {}, author: '', publisher: '' });
     const g = map.get(key);
     g.items.push(b);
+    g.names[raw] = (g.names[raw] || 0) + 1;      // 表示名の候補を数える
     if (!g.author    && b.author)    g.author    = b.author;
     if (!g.publisher && b.publisher) g.publisher = b.publisher;
   });
 
   const out = [];
   map.forEach(g => {
+    // 表示名は最も多く使われている表記を採用（同数なら短いほう）
+    const names = Object.keys(g.names);
+    names.sort((a, b) => (g.names[b] - g.names[a]) || (a.length - b.length));
+    g.name     = names[0];
+    g.variants = names;                       // 表記ゆれが複数ある場合の一覧
+
     g.items.sort((a, b) => (parseInt(a.volume) || 0) - (parseInt(b.volume) || 0));
 
     const vols = g.items.map(b => parseInt(b.volume)).filter(Number.isInteger);
@@ -1068,9 +1175,9 @@ function groupSeries(books) {
     g.missing = [];
     for (let v = 1; v <= g.max; v++) if (!g.owned.includes(v)) g.missing.push(v);
 
-    g.single  = g.owned.length === 0;
-    g.cover   = (g.items.find(b => b.cover) || {}).cover || '';
-    g.lastAt  = g.items.reduce((m, b) => (b.date && b.date > m ? b.date : m), '');
+    g.single = g.owned.length === 0;
+    g.cover  = (g.items.find(b => b.cover) || {}).cover || '';
+    g.lastAt = g.items.reduce((m, b) => (b.date && b.date > m ? b.date : m), '');
     out.push(g);
   });
 
@@ -1099,8 +1206,10 @@ function visibleGroups() {
   if (libFilter === 'single') list = list.filter(g => g.single);
 
   if (libQuery) {
+    const qk = seriesKey(libQuery);
     list = list.filter(g =>
       g.name.toLowerCase().includes(libQuery) ||
+      (qk && g.key.includes(qk)) ||
       (g.author || '').toLowerCase().includes(libQuery) ||
       g.items.some(b => String(b.title || '').toLowerCase().includes(libQuery))
     );
@@ -1118,8 +1227,7 @@ function renderLibrary() {
   const el   = document.getElementById('lib-list');
 
   const totalBooks = libBooks ? libBooks.length : 0;
-  const gapSeries  = libGroups.filter(g => g.missing.length > 0);
-  const gapVols    = gapSeries.reduce((n, g) => n + g.missing.length, 0);
+  const gapVols = libGroups.reduce((n, g) => n + g.missing.length, 0);
   document.getElementById('lib-stats').innerHTML =
     totalBooks + '冊 / ' + libGroups.length + 'シリーズ'
     + (gapVols ? ' / <span class="gap-txt">抜け ' + gapVols + '巻</span>' : '');
@@ -1155,10 +1263,12 @@ function renderLibrary() {
         + (gap ? '<span class="gap-txt">　抜け ' + gap + '巻</span>' : '');
 
     return '<div class="ser-card' + (gap ? ' has-gap' : '') + '" '
-         + 'onclick="openSeries(' + JSON.stringify(g.name).replace(/"/g,'&quot;') + ')">'
+         + 'onclick="openSeries(' + JSON.stringify(g.key).replace(/"/g,'&quot;') + ')">'
          +   '<div class="ser-cover">' + cover + '</div>'
          +   '<div class="ser-body">'
-         +     '<div class="ser-name">' + escapeHTML(g.name) + '</div>'
+         +     '<div class="ser-name">' + escapeHTML(g.name)
+         +       (g.variants.length > 1 ? ' <span class="src-tag">表記ゆれ' + g.variants.length + '</span>' : '')
+         +     '</div>'
          +     (meta ? '<div class="ser-meta">' + escapeHTML(meta) + '</div>' : '')
          +     '<div class="ser-count">' + count + '</div>'
          +     (chips ? '<div class="mini-chips">' + chips + '</div>' : '')
@@ -1170,11 +1280,12 @@ function renderLibrary() {
 // ══════════════════════════════════════════════════════
 //  Series detail
 // ══════════════════════════════════════════════════════
-function openSeries(name) {
-  const g = libGroups.find(x => x.name === name);
+function openSeries(key) {
+  const g = libGroups.find(x => x.key === key);
   if (!g) return;
   curSeries = g;
   document.getElementById('ser-title').textContent = g.name;
+  document.getElementById('rename-box').classList.remove('on');
   renderSeries();
   showScreen('s-series');
 }
@@ -1192,11 +1303,11 @@ function renderSeries() {
   const byVol = new Map();
   g.items.forEach(b => {
     const v = parseInt(b.volume);
-    if (Number.isInteger(v)) byVol.set(v, b); else rows.push(volRow(b, null));
+    if (Number.isInteger(v)) byVol.set(v, b); else rows.push(volRow(b, null, g));
   });
 
   for (let v = 1; v <= g.max; v++) {
-    if (byVol.has(v)) rows.push(volRow(byVol.get(v), v));
+    if (byVol.has(v)) rows.push(volRow(byVol.get(v), v, g));
     else rows.push(
       '<div class="vol-row missing">'
       + '<div class="vol-thumb">–</div>'
@@ -1208,7 +1319,7 @@ function renderSeries() {
   document.getElementById('ser-list').innerHTML = rows.join('');
 }
 
-function volRow(b, v) {
+function volRow(b, v, g) {
   const cover = b.cover
     ? '<img src="' + escapeHTML(b.cover) + '" alt="" onerror="this.parentNode.textContent=\'📖\'">'
     : '📖';
@@ -1216,24 +1327,88 @@ function volRow(b, v) {
   const sub   = [b.isbn, b.date].filter(Boolean).join('  ');
   const isbnJs = JSON.stringify(String(b.isbn)).replace(/"/g,'&quot;');
 
+  // 表記ゆれで束ねた場合、この巻が実際にどの名前で登録されているかを出す
+  const raw = String(b.series || '').trim();
+  const rawLine = (g && g.variants.length > 1 && raw && raw !== g.name)
+    ? '<div class="vol-raw">登録名: ' + escapeHTML(raw) + '</div>' : '';
+
   return '<div class="vol-row">'
        +   '<div class="vol-thumb">' + cover + '</div>'
        +   '<div class="vol-body">'
        +     '<div class="vol-no">' + escapeHTML(label) + '</div>'
        +     '<div class="vol-sub">' + escapeHTML(sub) + '</div>'
+       +     rawLine
        +   '</div>'
        +   '<button class="btn-del" onclick="armDelete(this,' + isbnJs + ')">削除</button>'
        + '</div>';
 }
 
-// 2段階タップで削除（誤操作防止）
+// ── シリーズ名の一括変更 ──
+function toggleRename() {
+  const box = document.getElementById('rename-box');
+  const on = !box.classList.contains('on');
+  box.classList.toggle('on', on);
+  if (!on) { document.activeElement?.blur(); return; }
+
+  document.getElementById('rename-input').value = curSeries ? curSeries.name : '';
+
+  // 表記ゆれの候補と、似た名前の既存シリーズをボタンで出す
+  const sug = [];
+  if (curSeries) {
+    curSeries.variants.forEach(n => { if (n !== curSeries.name) sug.push(n); });
+    libGroups.forEach(g => {
+      if (g.key !== curSeries.key && g.name.length > 1 &&
+          (g.key.includes(curSeries.key) || curSeries.key.includes(g.key))) sug.push(g.name);
+    });
+  }
+  document.getElementById('rename-sug').innerHTML = [...new Set(sug)].slice(0, 6)
+    .map(n => '<button class="sug" onclick="document.getElementById(\'rename-input\').value='
+            + JSON.stringify(n).replace(/"/g,'&quot;') + '">' + escapeHTML(n) + '</button>').join('');
+}
+
+async function doRename() {
+  if (!curSeries || busy) return;
+  const input = document.getElementById('rename-input');
+  const name = input.value.trim();
+  if (!name) { toast('新しいシリーズ名を入力してください', 'warn'); return; }
+
+  const btn = document.getElementById('rename-btn');
+  busy = true; btn.disabled = true; btn.textContent = '変更中…';
+  input.blur();
+
+  const targets = curSeries.items.slice();
+  let done = 0;
+
+  try {
+    for (const b of targets) {
+      await gasGet({ action: 'update', isbn: b.isbn,
+                     volume: b.volume || '', series: name });
+      // 手元のデータも同期して、再取得なしで反映する
+      const rec = libBooks.find(x => String(x.isbn) === String(b.isbn));
+      if (rec) rec.series = name;
+      done++;
+      btn.textContent = '変更中… ' + done + '/' + targets.length;
+    }
+
+    libGroups = groupSeries(libBooks);
+    const g = libGroups.find(x => x.key === (seriesKey(name) || name));
+    if (g) { curSeries = g; document.getElementById('ser-title').textContent = g.name; renderSeries(); }
+    renderLibrary();
+    document.getElementById('rename-box').classList.remove('on');
+    toast('✓ ' + done + '冊のシリーズ名を変更しました', 'ok');
+  } catch (e) {
+    if (e.message !== 'unauthorized') toast('❌ ' + e.message + '（' + done + '冊まで完了）', 'ng');
+  } finally {
+    busy = false; btn.disabled = false; btn.textContent = '変更';
+  }
+}
+
+// ── 削除（2段階タップ） ──
 let armedBtn = null, armTimer = null;
 function armDelete(btn, isbn) {
   if (armedBtn === btn) {
-    clearTimeout(armTimer);
-    armedBtn = null;
-    doDelete(btn, isbn);
-    return;
+    clearTimeout(armTimer); armedBtn = null;
+    doDelete(btn, isbn); return;
   }
   if (armedBtn) { armedBtn.classList.remove('arm'); armedBtn.textContent = '削除'; }
   armedBtn = btn;
@@ -1254,7 +1429,7 @@ async function doDelete(btn, isbn) {
       libBooks = libBooks.filter(b => String(b.isbn) !== String(isbn));
       libGroups = groupSeries(libBooks);
       updateLibEntryCount();
-      const g = libGroups.find(x => x.name === (curSeries && curSeries.name));
+      const g = libGroups.find(x => x.key === (curSeries && curSeries.key));
       if (g) { curSeries = g; renderSeries(); }
       else   { showScreen('s-library'); }
       renderLibrary();
@@ -1272,8 +1447,7 @@ async function doDelete(btn, isbn) {
 // ══════════════════════════════════════════════════════
 function updateLibEntryCount() {
   const el = document.getElementById('lib-entry-cnt');
-  if (!el) return;
-  el.textContent = libBooks ? libBooks.length + '冊' : '';
+  if (el) el.textContent = libBooks ? libBooks.length + '冊' : '';
 }
 async function refreshLibCount() {
   try {
@@ -1281,7 +1455,7 @@ async function refreshLibCount() {
     libBooks = Array.isArray(res) ? res : [];
     libGroups = groupSeries(libBooks);
     updateLibEntryCount();
-  } catch (e) { /* 起動時なので失敗しても黙って無視 */ }
+  } catch (e) {}
 }
 
 // ══════════════════════════════════════════════════════
@@ -1289,6 +1463,7 @@ async function refreshLibCount() {
 // ══════════════════════════════════════════════════════
 function openSettings() {
   document.getElementById('gas-input').value = gasURL();
+  document.getElementById('bt-sw').classList.toggle('on', btMode());
   showScreen('s-settings');
 }
 function saveSettings() {
@@ -1297,6 +1472,7 @@ function saveSettings() {
     toast('GASのURL形式ではないようです', 'warn');
   }
   localStorage.setItem(LS_GAS, v);
+  document.activeElement?.blur();
   toast('✓ 保存しました', 'ok');
   showScreen('s-scan');
 }
@@ -1315,7 +1491,8 @@ function toast(msg, type='') {
 // ══════════════════════════════════════════════════════
 //  Init
 // ══════════════════════════════════════════════════════
-btBuf.focus();
+document.getElementById('bt-sw').classList.toggle('on', btMode());
+document.getElementById('bt-badge').style.display = btMode() ? '' : 'none';
 
 if (!gasURL()) {
   const card = document.querySelector('.login-card');
