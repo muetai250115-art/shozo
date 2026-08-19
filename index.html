@@ -192,6 +192,10 @@
     .mchip-miss{background:rgba(217,164,65,.12);color:var(--warn);border:1px dashed rgba(217,164,65,.45)}
     .mchip-more{color:var(--muted)}
     .mchip-unk{background:rgba(255,255,255,.03);color:var(--muted);border:1px solid var(--border)}
+    .mchip-soon{background:transparent;color:var(--gold);border:1px dotted rgba(201,152,74,.6)}
+    .badge-soon{display:inline-block;font-size:.6rem;font-weight:700;letter-spacing:.05em;color:var(--gold-lt);
+      border:1px solid rgba(201,152,74,.5);border-radius:4px;padding:.06rem .32rem;margin-left:.35rem;vertical-align:middle}
+    .soon-txt{color:var(--gold-lt)}
     .icon-btn.wide{width:auto;padding:0 .65rem;font-size:.72rem;white-space:nowrap;gap:.25rem}
     .icon-btn:disabled{opacity:.45;cursor:not-allowed}
     .pub-hint-row{padding:0 1rem .5rem;font-size:.68rem;color:var(--muted);line-height:1.75;flex-shrink:0}
@@ -400,6 +404,7 @@
       <button class="fchip on"   id="f-all"    onclick="setFilter('all')">すべて</button>
       <button class="fchip warn" id="f-gap"    onclick="setFilter('gap')">抜けあり</button>
       <button class="fchip warn" id="f-new"    onclick="setFilter('new')">未所持あり</button>
+      <button class="fchip"      id="f-soon"   onclick="setFilter('soon')">発売予定</button>
       <button class="fchip"      id="f-single" onclick="setFilter('single')">単巻</button>
       <select class="sort-sel" id="lib-sort" onchange="setSort(this.value)">
         <option value="series">名前順</option>
@@ -1326,8 +1331,24 @@ function storePub(g, r) {
 function upcomingVols(g) {
   const p = pubOf(g);
   if (!p) return [];
-  return (p.upcoming || []).filter(v => !g.owned.includes(v));
+  return (p.upcoming || []).filter(v => !g.owned.includes(v)).sort((a, b) => a - b);
 }
+
+// いちばん早く出る予定の巻とその日付
+function nextPub(g) {
+  const p = pubOf(g);
+  const up = upcomingVols(g);
+  if (!p || !up.length) return null;
+  let best = null;
+  up.forEach(v => {
+    const d = p.dates[v] || '';
+    if (!best || String(d || '9999').localeCompare(String(best.date || '9999')) < 0) {
+      best = { vol: v, date: d };
+    }
+  });
+  return best;
+}
+function nextPubDate(g) { const n = nextPub(g); return n ? n.date : ''; }
 
 async function fetchPub(g, force) {
   if (!g) return null;
@@ -1461,7 +1482,7 @@ async function refreshAllPub(force) {
 // ══════════════════════════════════════════════════════
 function setFilter(f) {
   libFilter = f;
-  ['all','gap','new','single'].forEach(k =>
+  ['all','gap','new','soon','single'].forEach(k =>
     document.getElementById('f-' + k).classList.toggle('on', k === f));
   renderLibrary();
 }
@@ -1614,6 +1635,7 @@ function visibleGroups() {
 
   if (libFilter === 'gap')    list = list.filter(g => g.missing.length > 0);
   if (libFilter === 'new')    list = list.filter(g => unownedVols(g).length > 0);
+  if (libFilter === 'soon')   list = list.filter(g => upcomingVols(g).length > 0);
   if (libFilter === 'single') list = list.filter(g => g.single);
 
   if (libQuery) {
@@ -1626,6 +1648,10 @@ function visibleGroups() {
     );
   }
 
+  if (libFilter === 'soon') {
+    list.sort((a, b) => String(nextPubDate(a) || '9999').localeCompare(String(nextPubDate(b) || '9999')));
+    return list;
+  }
   if (libSort === 'series')      list.sort((a,b) => a.name.localeCompare(b.name, 'ja'));
   else if (libSort === 'recent') list.sort((a,b) => String(b.lastAt).localeCompare(String(a.lastAt)));
   else if (libSort === 'count')  list.sort((a,b) => b.items.length - a.items.length);
@@ -1645,6 +1671,9 @@ function renderLibrary() {
     '所持 ' + totalBooks + '冊 / ' + libGroups.length + 'シリーズ'
     + (pubVols ? ' / <span class="pub-txt">発売済み ' + pubVols + '巻</span>' : '')
     + (unbVols ? ' / <span class="gap-txt">未所持 ' + unbVols + '巻</span>' : '')
+    + (libGroups.reduce((n, g) => n + upcomingVols(g).length, 0)
+        ? ' / <span class="soon-txt">発売予定 '
+          + libGroups.reduce((n, g) => n + upcomingVols(g).length, 0) + '巻</span>' : '')
     + (unknown ? ' <span class="pub-hint">／未確認 ' + unknown + 'シリーズ</span>' : '');
 
   if (!list.length) {
@@ -1658,6 +1687,8 @@ function renderLibrary() {
   el.innerHTML = list.map(g => {
     const p     = pubOf(g);
     const unb   = unownedVols(g);
+    const up    = upcomingVols(g);
+    const soon  = nextPub(g);
     const gap   = g.missing.length;
     const newer = p && p.max > g.max;
     const cover = g.cover
@@ -1666,13 +1697,14 @@ function renderLibrary() {
 
     let chips = '';
     if (!g.single) {
-      const top   = Math.max(g.max, p ? p.max : 0);
+      const top   = Math.max(g.max, p ? p.max : 0, up.length ? up[up.length - 1] : 0);
       const shown = Math.min(top, 30);
       for (let v = 1; v <= shown; v++) {
         let cls;
         if (g.owned.includes(v))                cls = 'mchip-own';     // 所持
+        else if (up.includes(v))                cls = 'mchip-soon';    // 発売予定
         else if (!p || p.volumes.includes(v))   cls = 'mchip-miss';    // 発売済みだが未所持
-        else                                    cls = 'mchip-unk';     // 未発売・刊行情報なし
+        else                                    cls = 'mchip-unk';     // 刊行情報なし
         chips += '<span class="mchip ' + cls + '">' + v + '</span>';
       }
       if (top > shown) chips += '<span class="mchip mchip-more">…' + top + '</span>';
@@ -1684,7 +1716,9 @@ function renderLibrary() {
       : '所持 ' + g.items.length + '冊'
         + (p ? ' / <span class="pub-txt">発売 ' + p.max + '巻</span>' : ' / 最新 ' + g.max + '巻')
         + (unb.length ? '<span class="gap-txt">　未所持 ' + unb.length + '巻</span>'
-                      : (p ? '<span class="own-txt">　全巻そろい</span>' : ''));
+                      : (p ? '<span class="own-txt">　発売分はそろい</span>' : ''))
+        + (soon ? '<div class="soon-txt" style="margin-top:.15rem">発売予定 '
+                  + soon.vol + '巻' + (soon.date ? '　' + escapeHTML(soon.date) : '') + '</div>' : '');
 
     return '<div class="ser-card' + (gap || unb.length ? ' has-gap' : '') + '" '
          + 'onclick="openSeries(' + JSON.stringify(g.key).replace(/"/g,'&quot;') + ')">'
@@ -1692,6 +1726,7 @@ function renderLibrary() {
          +   '<div class="ser-body">'
          +     '<div class="ser-name">' + escapeHTML(g.name)
          +       (newer ? '<span class="badge-new">新刊 ' + (p.max - g.max) + '巻</span>' : '')
+         +       (up.length ? '<span class="badge-soon">近刊 ' + up.length + '巻</span>' : '')
          +       (g.variants.length > 1 ? ' <span class="src-tag">表記ゆれ' + g.variants.length + '</span>' : '')
          +     '</div>'
          +     (meta ? '<div class="ser-meta">' + escapeHTML(meta) + '</div>' : '')
