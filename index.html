@@ -449,7 +449,7 @@ const LS_GAS = 'shozo_gas_url';
 const LS_TOK = 'shozo_token';
 const LS_EXP = 'shozo_token_exp';
 const LS_BT  = 'shozo_bt_mode';     // Bluetoothスキャナーを使うか
-const REQ_TIMEOUT = 25000;
+const REQ_TIMEOUT = 60000;
 const PUB_TIMEOUT = 90000;   // 発売状況の検索は書誌検索より時間がかかる
 const ZXING_CDN = 'https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js';
 const LS_PUB  = 'shozo_pub_cache';          // 発売状況のキャッシュ
@@ -591,7 +591,7 @@ async function fetchJSON(url, timeoutMs) {
   } finally { clearTimeout(t); }
 }
 
-async function gasGet(params, timeoutMs) {
+async function gasGet(params, ) {
   const url = gasURL();
   if (!url) throw new Error('GAS URL が設定されていません');
   const tok = getToken();
