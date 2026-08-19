@@ -473,7 +473,8 @@ const LS_TOK = 'shozo_token';
 const LS_EXP = 'shozo_token_exp';
 const LS_BT  = 'shozo_bt_mode';     // Bluetoothスキャナーを使うか
 const REQ_TIMEOUT = 25000;
-const BOOK_TIMEOUT = 45000;  // 書誌検索。GASの起動が遅いことがあるので長めに取る
+const BOOK_TIMEOUT  = 45000; // 書誌検索。GASの起動が遅いことがあるので長めに取る
+const WRITE_TIMEOUT = 45000; // 登録・更新・削除・一覧。シートへの読み書きを伴う
 const PUB_TIMEOUT  = 90000;  // 発売状況の検索はさらに時間がかかる
 const ZXING_CDN = 'https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js';
 const LS_PUB  = 'shozo_pub_cache';          // 発売状況のキャッシュ
@@ -1101,6 +1102,11 @@ async function doRegister() {
   busy = true;
   const btn = document.getElementById('btn-reg');
   btn.disabled = true; btn.textContent = '登録中…';
+  const t0 = Date.now();
+  const tick = setInterval(() => {
+    const sec = Math.round((Date.now() - t0) / 1000);
+    if (sec >= 5) btn.textContent = '登録中… ' + sec + '秒';
+  }, 500);
 
   try {
     const res = await gasGet({
@@ -1112,7 +1118,7 @@ async function doRegister() {
       series:    cur.series    || '',
       publisher: cur.publisher || '',
       cover:     cur.cover     || ''
-    });
+    }, WRITE_TIMEOUT);
 
     if (res.status === 'added') {
       toast('✓ 登録しました', 'ok');
@@ -1123,7 +1129,7 @@ async function doRegister() {
     } else if (res.status === 'exists') {
       if (cur.volume || cur.series) {
         await gasGet({ action: 'update', isbn: cur.isbn,
-                       volume: cur.volume || '', series: cur.series || '' });
+                       volume: cur.volume || '', series: cur.series || '' }, WRITE_TIMEOUT);
         toast('登録済みのため情報を更新しました', 'ok');
       } else {
         toast('この本は登録済みです');
@@ -1134,9 +1140,17 @@ async function doRegister() {
       throw new Error(res.message || res.error || '登録に失敗しました');
     }
   } catch (e) {
-    if (e.message !== 'unauthorized') toast('❌ ' + e.message, 'ng');
+    if (e.message === 'タイムアウトしました') {
+      // 応答が来なかっただけで、シートには書き込まれている可能性がある。
+      // 同じISBNは二重登録されない作りなので、もう一度押しても害はない。
+      toast('❌ 応答がありませんでした。蔵書一覧で登録されているか確認してください', 'ng');
+      libBooks = null;
+    } else if (e.message !== 'unauthorized') {
+      toast('❌ ' + e.message, 'ng');
+    }
     btn.disabled = false; btn.textContent = '登　録';
   } finally {
+    clearInterval(tick);
     busy = false;
   }
 }
@@ -1187,7 +1201,7 @@ async function loadLibrary(force) {
   el.innerHTML = '<div class="empty">読み込み中…</div>';
   document.getElementById('lib-stats').textContent = '';
   try {
-    const res = await gasGet({ action: 'list' });
+    const res = await gasGet({ action: 'list' }, WRITE_TIMEOUT);
     libBooks = Array.isArray(res) ? res : [];
     libGroups = groupSeries(libBooks);
     renderLibrary();
@@ -1714,7 +1728,7 @@ function armDelete(btn, isbn) {
 async function doDelete(btn, isbn) {
   btn.disabled = true; btn.textContent = '削除中…';
   try {
-    const res = await gasGet({ action: 'delete', isbn: isbn });
+    const res = await gasGet({ action: 'delete', isbn: isbn }, WRITE_TIMEOUT);
     if (res.status === 'deleted') {
       toast('✓ 削除しました', 'ok');
       libBooks = libBooks.filter(b => String(b.isbn) !== String(isbn));
@@ -1742,7 +1756,7 @@ function updateLibEntryCount() {
 }
 async function refreshLibCount() {
   try {
-    const res = await gasGet({ action: 'list' });
+    const res = await gasGet({ action: 'list' }, WRITE_TIMEOUT);
     libBooks = Array.isArray(res) ? res : [];
     libGroups = groupSeries(libBooks);
     updateLibEntryCount();
