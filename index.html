@@ -158,6 +158,21 @@
     .fchip.on{background:var(--gold);color:#1a1208;border-color:var(--gold);font-weight:700}
     .fchip.warn.on{background:var(--warn);border-color:var(--warn)}
     .sort-sel{margin-left:auto;background:var(--surface);border:1px solid var(--border);color:var(--muted);border-radius:8px;font-family:'Noto Serif JP',serif;font-size:.73rem;padding:.3rem .5rem;outline:none}
+    .sac-wrap{position:relative;width:100%}
+    .sac-list{position:absolute;top:calc(100% + 5px);left:0;right:0;background:var(--surface2);
+      border:1px solid var(--border);border-radius:12px;overflow:hidden auto;max-height:46vh;
+      z-index:200;box-shadow:0 12px 30px rgba(0,0,0,.55)}
+    .sac-item{display:flex;align-items:center;gap:.6rem;padding:.6rem .8rem;cursor:pointer;
+      border-bottom:1px solid rgba(255,255,255,.05);-webkit-tap-highlight-color:transparent}
+    .sac-item:last-child{border-bottom:none}
+    .sac-item.on{background:rgba(201,152,74,.16)}
+    .sac-tag{font-size:.6rem;letter-spacing:.08em;color:var(--muted);border:1px solid var(--border);
+      border-radius:4px;padding:.05rem .32rem;flex-shrink:0}
+    .sac-body{flex:1;min-width:0}
+    .sac-name{font-size:.84rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .sac-sub{font-size:.65rem;color:var(--muted);margin-top:.12rem;font-family:'DM Mono',monospace;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .sac-hit{color:var(--gold-lt);font-weight:700}
     .lib-stats{padding:0 1rem .5rem;font-size:.71rem;color:var(--muted);font-family:'DM Mono',monospace;flex-shrink:0}
     .lib-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 1rem 2.5rem;display:flex;flex-direction:column;gap:.55rem}
 
@@ -372,9 +387,15 @@
     <button class="icon-btn" onclick="loadLibrary(true)" title="再読み込み">↻</button>
   </div>
   <div class="lib-tools">
-    <input class="search-field" id="lib-search" type="search"
-           placeholder="シリーズ名・書名・著者で検索…"
-           oninput="onSearchInput(this.value)">
+    <div class="sac-wrap">
+      <input class="search-field" id="lib-search" type="search"
+             placeholder="シリーズ名・書名・著者で検索…"
+             autocomplete="off" autocorrect="off" autocapitalize="off"
+             oninput="onSearchInput(this.value)"
+             onkeydown="sacKey(event)"
+             onfocus="sacUpdate(this.value)">
+      <div class="sac-list" id="sac-list" style="display:none"></div>
+    </div>
     <div class="filter-row">
       <button class="fchip on"   id="f-all"    onclick="setFilter('all')">すべて</button>
       <button class="fchip warn" id="f-gap"    onclick="setFilter('gap')">抜けあり</button>
@@ -502,6 +523,7 @@ let camStream = null, camDetector = null, camRAF = null,
 //  Screen
 // ══════════════════════════════════════════════════════
 function showScreen(id) {
+  if (typeof sacHide === 'function') sacHide();
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   const hideCog = ['s-settings','s-login','s-library','s-series','s-cam'].includes(id);
@@ -1445,9 +1467,147 @@ function setFilter(f) {
 }
 function setSort(s) { libSort = s; renderLibrary(); }
 function onSearchInput(v) {
+  sacUpdate(v);                       // 候補は打つたびすぐ出す
   clearTimeout(searchTimer);
   searchTimer = setTimeout(() => { libQuery = v.trim().toLowerCase(); renderLibrary(); }, 180);
 }
+
+// ══════════════════════════════════════════════════════
+//  検索候補（手元の蔵書から作る）
+//   シリーズ名・表記ゆれ・書名・著者を対象にする。
+//   seriesKey() を通すので「ワンピース／ONE PIECE」のような
+//   全角半角・カナひらがなの違いでも拾える。
+// ══════════════════════════════════════════════════════
+let sacItems = [], sacIdx = -1;
+
+function sacBuild(raw) {
+  const q = String(raw || '').trim().toLowerCase();
+  if (!q) return [];
+  const qk = seriesKey(q);
+  const out = [];
+
+  libGroups.forEach(g => {
+    const name = String(g.name || '');
+    const low  = name.toLowerCase();
+    let why = '';
+    if (low.includes(q) || (qk && g.key.includes(qk)))               why = 'name';
+    else if (g.variants.some(n => n.toLowerCase().includes(q)))      why = 'variant';
+    else {
+      const b = g.items.find(x => String(x.title || '').toLowerCase().includes(q));
+      if (b) why = 'title:' + b.title;
+    }
+    if (!why) return;
+
+    const detail = g.single
+      ? g.items.length + '冊'
+      : g.items.length + '冊 / 最新 ' + g.max + '巻'
+        + (g.missing.length ? ' / 抜け ' + g.missing.length : '');
+    out.push({
+      type:  'シリーズ',
+      label: name,
+      sub:   [g.author, detail].filter(Boolean).join('  ·  '),
+      key:   g.key,
+      rank:  low.startsWith(q) ? 0 : (why === 'name' ? 1 : 2)
+    });
+  });
+
+  // 著者はまとめて1件にする
+  const byAuthor = new Map();
+  libGroups.forEach(g => {
+    const a = String(g.author || '');
+    if (!a || !a.toLowerCase().includes(q)) return;
+    const cur = byAuthor.get(a) || { books: 0, series: 0 };
+    cur.books += g.items.length; cur.series += 1;
+    byAuthor.set(a, cur);
+  });
+  byAuthor.forEach((v, a) => out.push({
+    type: '著者', label: a,
+    sub:  v.series + 'シリーズ  ·  ' + v.books + '冊',
+    rank: 3
+  }));
+
+  out.sort((a, b) => (a.rank - b.rank) || a.label.localeCompare(b.label, 'ja'));
+  return out.slice(0, 8);
+}
+
+// 一致した部分を目立たせる
+function sacMark(text, q) {
+  const t = String(text || '');
+  const i = t.toLowerCase().indexOf(String(q || '').trim().toLowerCase());
+  if (i < 0 || !q.trim()) return escapeHTML(t);
+  const n = q.trim().length;
+  return escapeHTML(t.slice(0, i))
+       + '<span class="sac-hit">' + escapeHTML(t.slice(i, i + n)) + '</span>'
+       + escapeHTML(t.slice(i + n));
+}
+
+function sacUpdate(raw) {
+  const el = document.getElementById('sac-list');
+  if (!el) return;
+  sacItems = sacBuild(raw);
+  sacIdx = -1;
+  if (!sacItems.length) { el.style.display = 'none'; el.innerHTML = ''; return; }
+
+  el.innerHTML = sacItems.map((it, i) =>
+    '<div class="sac-item" data-i="' + i + '" onclick="sacPick(' + i + ')">'
+    + '<span class="sac-tag">' + it.type + '</span>'
+    + '<div class="sac-body">'
+    +   '<div class="sac-name">' + sacMark(it.label, raw) + '</div>'
+    +   (it.sub ? '<div class="sac-sub">' + escapeHTML(it.sub) + '</div>' : '')
+    + '</div></div>').join('');
+  el.style.display = '';
+}
+
+function sacHide() {
+  const el = document.getElementById('sac-list');
+  if (el) { el.style.display = 'none'; }
+  sacItems = []; sacIdx = -1;
+}
+
+function sacHighlight() {
+  const el = document.getElementById('sac-list');
+  if (!el) return;
+  [...el.children].forEach((c, i) => c.classList.toggle('on', i === sacIdx));
+  if (sacIdx >= 0 && el.children[sacIdx]) {
+    el.children[sacIdx].scrollIntoView({ block: 'nearest' });
+  }
+}
+
+function sacPick(i) {
+  const it = sacItems[i];
+  if (!it) return;
+  const input = document.getElementById('lib-search');
+  input.value = it.label;
+  libQuery = it.label.toLowerCase();
+  clearTimeout(searchTimer);
+  renderLibrary();
+  sacHide();
+  input.blur();
+  if (it.type === 'シリーズ' && it.key) openSeries(it.key);   // シリーズはそのまま開く
+}
+
+function sacKey(e) {
+  if (!sacItems.length) {
+    if (e.key === 'Enter') { document.getElementById('lib-search').blur(); }
+    return;
+  }
+  if (e.key === 'ArrowDown') {
+    e.preventDefault(); sacIdx = (sacIdx + 1) % sacItems.length; sacHighlight();
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault(); sacIdx = (sacIdx - 1 + sacItems.length) % sacItems.length; sacHighlight();
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    if (sacIdx >= 0) sacPick(sacIdx);
+    else { sacHide(); document.getElementById('lib-search').blur(); }
+  } else if (e.key === 'Escape') {
+    sacHide();
+  }
+}
+
+// 候補の外をさわったら閉じる
+document.addEventListener('pointerdown', e => {
+  if (!e.target.closest || !e.target.closest('.sac-wrap')) sacHide();
+});
 
 function visibleGroups() {
   let list = libGroups.slice();
