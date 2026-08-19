@@ -473,7 +473,8 @@ const LS_TOK = 'shozo_token';
 const LS_EXP = 'shozo_token_exp';
 const LS_BT  = 'shozo_bt_mode';     // Bluetoothスキャナーを使うか
 const REQ_TIMEOUT = 25000;
-const PUB_TIMEOUT = 90000;   // 発売状況の検索は書誌検索より時間がかかる
+const BOOK_TIMEOUT = 45000;  // 書誌検索。GASの起動が遅いことがあるので長めに取る
+const PUB_TIMEOUT  = 90000;  // 発売状況の検索はさらに時間がかかる
 const ZXING_CDN = 'https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js';
 const LS_PUB  = 'shozo_pub_cache';          // 発売状況のキャッシュ
 const PUB_TTL = 21 * 24 * 60 * 60 * 1000;   // 21日で再取得
@@ -960,8 +961,20 @@ async function doLookup(raw) {
   showScreen('s-load');
   document.getElementById('load-isbn-txt').textContent = 'ISBN: ' + isbn;
 
+  // サーバー側がどこまで進んだかは分からないので、経過時間だけを出す
+  const msgEl = document.querySelector('#s-load .load-msg');
+  const t0 = Date.now();
+  msgEl.textContent = '書籍情報を取得中…';
+  const tick = setInterval(() => {
+    const sec = Math.round((Date.now() - t0) / 1000);
+    if (sec < 5) return;
+    msgEl.textContent = '書籍情報を取得中… ' + sec + '秒'
+                      + (sec >= 20 ? '（応答が遅れています）' : '');
+  }, 500);
+  const clearSlow = () => { clearInterval(tick); msgEl.textContent = '書籍情報を取得中…'; };
+
   try {
-    const info = await gasGet({ action: 'book', isbn: isbn });
+    const info = await gasGet({ action: 'book', isbn: isbn }, BOOK_TIMEOUT);
     if (!info.ok) {
       toast('❌ ' + (info.message || '書籍情報が見つかりませんでした'), 'ng');
       afterSheet(); return;
@@ -975,16 +988,21 @@ async function doLookup(raw) {
     renderConfirm(info, owned);
     showScreen('s-confirm');
   } catch (e) {
-    if (e.message !== 'unauthorized') toast('❌ ' + e.message, 'ng');
+    if (e.message === 'タイムアウトしました') {
+      toast('❌ 応答がありませんでした。もう一度読み取ってください', 'ng');
+    } else if (e.message !== 'unauthorized') {
+      toast('❌ ' + e.message, 'ng');
+    }
     afterSheet();
   } finally {
+    clearSlow();
     busy = false;
   }
 }
 
 async function fetchOwned(isbn, seriesName) {
   try {
-    const res = await gasGet({ action: 'check', isbn: isbn, series: seriesName || '' });
+    const res = await gasGet({ action: 'check', isbn: isbn, series: seriesName || '' }, BOOK_TIMEOUT);
     // サーバーは完全一致で集計するため、手元のデータで補完する
     const local = localOwnedVolumes(seriesName);
     const merged = [...new Set([...(res.ownedVolumes || []), ...local])]
@@ -1234,7 +1252,8 @@ function loadPubCache() {
     const raw = JSON.parse(localStorage.getItem(LS_PUB) || '{}');
     const now = Date.now(), out = {};
     Object.keys(raw).forEach(k => {
-      if (raw[k] && now - (raw[k].at || 0) < PUB_TTL) out[k] = raw[k];
+      // v が古いものは判定基準が変わっているので捨てて取り直す
+      if (raw[k] && raw[k].v === 2 && now - (raw[k].at || 0) < PUB_TTL) out[k] = raw[k];
     });
     return out;
   } catch (e) { return {}; }
@@ -1253,12 +1272,25 @@ function unownedVols(g) {
 
 function storePub(g, r) {
   const isbns = {}, dates = {};
-  (r.items || []).forEach(it => {
+  [...(r.items || []), ...(r.upcoming || [])].forEach(it => {
     if (it.isbn)    isbns[it.volume] = it.isbn;
     if (it.pubdate) dates[it.volume] = it.pubdate;
   });
-  pubMap[g.key] = { name: r.name, volumes: r.volumes || [], max: r.max || 0,
-                    isbns: isbns, dates: dates, at: Date.now() };
+  pubMap[g.key] = {
+    v: 2,
+    name: r.name,
+    volumes:  r.volumes || [],                                  // 発売済み
+    upcoming: (r.upcoming || []).map(u => u.volume),            // 発売予定
+    max: r.max || 0,
+    isbns: isbns, dates: dates, at: Date.now()
+  };
+}
+
+// 発売予定（まだ買えない）巻。未所持の数には入れない
+function upcomingVols(g) {
+  const p = pubOf(g);
+  if (!p) return [];
+  return (p.upcoming || []).filter(v => !g.owned.includes(v));
 }
 
 async function fetchPub(g, force) {
@@ -1466,7 +1498,7 @@ function renderLibrary() {
         let cls;
         if (g.owned.includes(v))                cls = 'mchip-own';     // 所持
         else if (!p || p.volumes.includes(v))   cls = 'mchip-miss';    // 発売済みだが未所持
-        else                                    cls = 'mchip-unk';     // 刊行情報なし
+        else                                    cls = 'mchip-unk';     // 未発売・刊行情報なし
         chips += '<span class="mchip ' + cls + '">' + v + '</span>';
       }
       if (top > shown) chips += '<span class="mchip mchip-more">…' + top + '</span>';
@@ -1524,14 +1556,16 @@ function renderSeries() {
 
   const p   = pubOf(g);
   const unb = unownedVols(g);
-  const top = Math.max(g.max, p ? p.max : 0);
+  const up  = upcomingVols(g);
+  const top = Math.max(g.max, p ? p.max : 0, up.length ? Math.max(...up) : 0);
 
   document.getElementById('ser-stats').innerHTML =
     '所持 ' + g.items.length + '冊'
     + (g.single ? '' : ' / 手元は ' + g.max + '巻まで')
     + (p ? ' / <span class="pub-txt">発売済み ' + p.max + '巻</span>' : '')
     + (unb.length ? ' / <span class="gap-txt">未所持 ' + unb.join(', ') + '巻</span>'
-                  : (p ? ' / <span class="own-txt">全巻そろっています</span>' : ''))
+                  : (p ? ' / <span class="own-txt">発売分はそろっています</span>' : ''))
+    + (up.length ? ' / <span class="pub-hint">発売予定 ' + up.join(', ') + '巻</span>' : '')
     + (!p && !g.single ? ' <span class="pub-hint">／「🆕 発売状況」で何巻まで出ているか調べられます</span>' : '');
 
   const rows = [];
@@ -1546,15 +1580,26 @@ function renderSeries() {
 
     // 発売済みと確認できた巻／刊行情報が無い巻 を区別して出す
     const published = p ? p.volumes.includes(v) : false;
+    const soon      = p ? (p.upcoming || []).includes(v) : false;
     const isbn = (p && p.isbns[v]) || '';
     const date = (p && p.dates[v]) || '';
-    const sub  = published
-      ? '未所持（発売済み）' + (date ? '　' + escapeHTML(date) : '') + (isbn ? '　' + escapeHTML(isbn) : '')
-      : (p ? '刊行情報なし' : '未所持');
+
+    let sub, cls, mark;
+    if (published) {
+      sub  = '未所持（発売済み）' + (date ? '　' + escapeHTML(date) : '')
+           + (isbn ? '　' + escapeHTML(isbn) : '');
+      cls  = 'unbought'; mark = '＋';
+    } else if (soon) {
+      sub  = 'まだ発売されていません' + (date ? '　発売予定 ' + escapeHTML(date) : '');
+      cls  = 'missing';  mark = '…';
+    } else {
+      sub  = p ? '刊行情報なし' : '未所持';
+      cls  = 'missing';  mark = '–';
+    }
 
     rows.push(
-      '<div class="vol-row ' + (published ? 'unbought' : 'missing') + '">'
-      + '<div class="vol-thumb">' + (published ? '＋' : '–') + '</div>'
+      '<div class="vol-row ' + cls + '">'
+      + '<div class="vol-thumb">' + mark + '</div>'
       + '<div class="vol-body">'
       +   '<div class="vol-no ' + (published ? 'unbought' : 'missing') + '">第 ' + v + ' 巻</div>'
       +   '<div class="vol-sub">' + sub + '</div>'
