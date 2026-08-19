@@ -450,6 +450,7 @@ const LS_TOK = 'shozo_token';
 const LS_EXP = 'shozo_token_exp';
 const LS_BT  = 'shozo_bt_mode';     // Bluetoothスキャナーを使うか
 const REQ_TIMEOUT = 25000;
+const PUB_TIMEOUT = 90000;   // 発売状況の検索は書誌検索より時間がかかる
 const ZXING_CDN = 'https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js';
 const LS_PUB  = 'shozo_pub_cache';          // 発売状況のキャッシュ
 const PUB_TTL = 21 * 24 * 60 * 60 * 1000;   // 21日で再取得
@@ -577,9 +578,9 @@ function clearToken() {
 }
 function gasURL() { return localStorage.getItem(LS_GAS) || ''; }
 
-async function fetchJSON(url) {
+async function fetchJSON(url, timeoutMs) {
   const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), REQ_TIMEOUT);
+  const t = setTimeout(() => ctrl.abort(), timeoutMs || REQ_TIMEOUT);
   try {
     const r = await fetch(url, { signal: ctrl.signal });
     if (!r.ok) throw new Error('サーバー応答エラー (' + r.status + ')');
@@ -590,14 +591,14 @@ async function fetchJSON(url) {
   } finally { clearTimeout(t); }
 }
 
-async function gasGet(params) {
+async function gasGet(params, timeoutMs) {
   const url = gasURL();
   if (!url) throw new Error('GAS URL が設定されていません');
   const tok = getToken();
   if (!tok) { forceRelogin('ログインが必要です'); throw new Error('unauthorized'); }
 
   const p = new URLSearchParams({ ...params, token: tok });
-  const res = await fetchJSON(url + '?' + p);
+  const res = await fetchJSON(url + '?' + p, timeoutMs);
 
   if (res && res.error === 'unauthorized') {
     forceRelogin(res.reason === 'expired'
@@ -1240,7 +1241,7 @@ function storePub(g, r) {
 async function fetchPub(g, force) {
   if (!g) return null;
   if (!force && pubMap[g.key]) return pubMap[g.key];
-  const res = await gasGet({ action: 'series', name: g.name, author: g.author || '' });
+  const res = await gasGet({ action: 'series', name: g.name, author: g.author || '' }, PUB_TIMEOUT);
   if (res && res.ok) { storePub(g, res); savePubCache(); return pubMap[g.key]; }
   return null;
 }
@@ -1267,30 +1268,40 @@ async function refreshAllPub(force) {
 
   busy = true;
   const st = document.getElementById('lib-stats');
-  let done = 0, hitNew = 0;
+  let done = 0, hitNew = 0, failed = 0, stop = false;
   try {
-    for (let i = 0; i < targets.length; i += 6) {
-      const chunk = targets.slice(i, i + 6);
-      const res = await gasGet({
-        action:  'seriesBatch',
-        names:   chunk.map(g => g.name).join('\u0001'),
-        authors: chunk.map(g => g.author || '').join('\u0001')
-      });
-      (res.results || []).forEach((r, j) => {
-        if (r && r.ok && chunk[j]) {
-          storePub(chunk[j], r);
-          if (r.max > chunk[j].max) hitNew++;
-        }
-      });
+    // 3件ずつ。1シリーズあたり数秒かかるので、まとめて送りすぎると必ず落ちる
+    for (let i = 0; i < targets.length && !stop; i += 3) {
+      const chunk = targets.slice(i, i + 3);
+      try {
+        const res = await gasGet({
+          action:  'seriesBatch',
+          names:   chunk.map(g => g.name).join('\u0001'),
+          authors: chunk.map(g => g.author || '').join('\u0001')
+        }, PUB_TIMEOUT);
+        (res.results || []).forEach((r, j) => {
+          if (r && r.ok && chunk[j]) {
+            storePub(chunk[j], r);
+            if (r.max > chunk[j].max) hitNew++;
+          }
+        });
+        savePubCache();      // 途中で止まってもここまでは残る
+      } catch (e) {
+        if (e.message === 'unauthorized') { stop = true; break; }
+        failed += chunk.length;   // このかたまりは飛ばして先へ進む
+      }
       done = Math.min(i + chunk.length, targets.length);
-      savePubCache();
-      st.innerHTML = '発売状況を確認中… ' + done + ' / ' + targets.length + ' シリーズ';
+      st.innerHTML = '発売状況を確認中… ' + done + ' / ' + targets.length + ' シリーズ'
+                   + (failed ? '（失敗 ' + failed + '）' : '');
     }
     renderLibrary();
-    toast(hitNew ? '✓ 新刊が出ているシリーズ ' + hitNew + '件' : '✓ 発売状況を更新しました', 'ok');
-  } catch (e) {
-    renderLibrary();
-    if (e.message !== 'unauthorized') toast('❌ ' + e.message + '（' + done + '件まで完了）', 'ng');
+    if (!stop) {
+      toast(failed ? '確認できたのは ' + (done - failed) + '/' + targets.length
+                     + 'シリーズです。もう一度🆕を押すと続きから取得します'
+                   : (hitNew ? '✓ 新刊が出ているシリーズ ' + hitNew + '件'
+                             : '✓ 発売状況を更新しました'),
+            failed ? 'warn' : 'ok');
+    }
   } finally { busy = false; }
 }
 
