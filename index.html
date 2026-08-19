@@ -472,6 +472,15 @@
   </div>
 
   <div class="sep">
+    <div class="sec-label">発売状況の記録</div>
+    <div class="sw-hint" id="pub-count" style="margin-top:0">—</div>
+    <button class="btn btn-ghost" onclick="resetPubCache()"
+            style="padding:.55rem 1.1rem;margin-top:.7rem">記録を消して調べ直す</button>
+    <div class="sw-hint">消したあと、蔵書一覧の「🆕 発売状況」を押すと全シリーズを取り直します。<br>
+      サーバー側の一時保存も無視するので、最新の刊行状況が反映されます。</div>
+  </div>
+
+  <div class="sep">
     <div class="sec-label">接続確認</div>
     <button class="btn btn-ghost" onclick="doPing()" style="padding:.55rem 1.1rem">サーバーに接続してみる</button>
   </div>
@@ -504,6 +513,7 @@ const WRITE_TIMEOUT = 45000; // 登録・更新・削除・一覧。シートへ
 const PUB_TIMEOUT  = 90000;  // 発売状況の検索はさらに時間がかかる
 const ZXING_CDN = 'https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js';
 const LS_PUB  = 'shozo_pub_cache';          // 発売状況のキャッシュ
+const LS_PUB_FRESH = 'shozo_pub_fresh';     // 次回サーバーのキャッシュも無視するか
 const PUB_TTL = 21 * 24 * 60 * 60 * 1000;   // 21日で再取得
 
 let cur = null, isDupe = false, busy = false;
@@ -1329,6 +1339,34 @@ function loadPubCache() {
 function savePubCache() {
   try { localStorage.setItem(LS_PUB, JSON.stringify(pubMap)); } catch (e) {}
 }
+
+// 次の取得でサーバー側のキャッシュも無視するかどうか
+function pubFresh()        { return localStorage.getItem(LS_PUB_FRESH) === '1'; }
+function setPubFresh(on)   {
+  if (on) localStorage.setItem(LS_PUB_FRESH, '1');
+  else    localStorage.removeItem(LS_PUB_FRESH);
+}
+
+// 発売状況の記録をすべて捨てる
+function resetPubCache() {
+  const n = Object.keys(pubMap).length;
+  pubMap = {};
+  try { localStorage.removeItem(LS_PUB); } catch (e) {}
+  setPubFresh(true);                 // 次はサーバーのキャッシュも使わない
+  if (libGroups.length) renderLibrary();
+  updatePubCount();
+  toast(n ? n + 'シリーズ分の記録を消しました。一覧の「🆕 発売状況」で調べ直せます'
+          : '消す記録はありませんでした', 'ok');
+}
+
+function updatePubCount() {
+  const el = document.getElementById('pub-count');
+  if (!el) return;
+  const n = Object.keys(pubMap).length;
+  el.textContent = n
+    ? n + 'シリーズ分の発売状況を保存しています' + (pubFresh() ? '（次回は取り直します）' : '')
+    : '保存されている発売状況はありません';
+}
 function pubOf(g) { return (g && pubMap[g.key]) || null; }
 
 // 発売済みなのに手元に無い巻
@@ -1380,7 +1418,8 @@ function nextPubDate(g) { const n = nextPub(g); return n ? n.date : ''; }
 async function fetchPub(g, force) {
   if (!g) return null;
   if (!force && pubMap[g.key]) return pubMap[g.key];
-  const res = await gasGet({ action: 'series', name: g.name, author: g.author || '' }, PUB_TIMEOUT);
+  const res = await gasGet({ action: 'series', name: g.name, author: g.author || '',
+                             fresh: (force || pubFresh()) ? '1' : '' }, PUB_TIMEOUT);
   if (res && res.ok) { storePub(g, res); savePubCache(); return pubMap[g.key]; }
   return null;
 }
@@ -1453,6 +1492,8 @@ async function refreshAllPub(force) {
     return;
   }
 
+  const fresh = force || pubFresh();     // リセット直後はサーバーのキャッシュも使わない
+
   // ★通信を始める前に、押したことが分かる状態にする
   busy = true; pubCancel = false;
   setPubBtns(true);
@@ -1467,7 +1508,8 @@ async function refreshAllPub(force) {
         const res = await gasGet({
           action:  'seriesBatch',
           names:   chunk.map(g => g.name).join('\u0001'),
-          authors: chunk.map(g => g.author || '').join('\u0001')
+          authors: chunk.map(g => g.author || '').join('\u0001'),
+          fresh:   fresh ? '1' : ''
         }, PUB_TIMEOUT);
         (res.results || []).forEach((r, j) => {
           if (r && r.ok && chunk[j]) {
@@ -1499,8 +1541,10 @@ async function refreshAllPub(force) {
             failed ? 'warn' : 'ok');
     }
   } finally {
+    if (!pubCancel && !stop && !failed) setPubFresh(false);   // 全部取り直せたら解除
     busy = false; pubCancel = false;
     setPubBtns(false); pubBarHide();
+    updatePubCount();
   }
 }
 
@@ -2006,6 +2050,7 @@ async function refreshLibCount() {
 function openSettings() {
   document.getElementById('gas-input').value = gasURL();
   document.getElementById('bt-sw').classList.toggle('on', btMode());
+  updatePubCount();
   showScreen('s-settings');
 }
 function saveSettings() {
