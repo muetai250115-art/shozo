@@ -1212,6 +1212,28 @@ function seriesKey(s) {
 }
 
 // ══════════════════════════════════════════════════════
+//  並び替えのための下ごしらえ
+// ══════════════════════════════════════════════════════
+
+// 「2026/08/19 21:30」「2026-08-19T12:30:00.000Z」どちらでも比較できる数値にする
+function toTime(v) {
+  if (!v) return 0;
+  const t = String(v).trim();
+  const m = t.match(/(\d{4})\D(\d{1,2})\D(\d{1,2})(?:\D(\d{1,2})\D(\d{1,2}))?/);
+  if (m) return Date.UTC(+m[1], +m[2] - 1, +m[3], +(m[4] || 0), +(m[5] || 0));
+  const d = Date.parse(t);
+  return isNaN(d) ? 0 : d;
+}
+
+// 名前順は localeCompare だけだと不安定なので、正規化キー（カナ→ひらがな、
+// 記号・空白を除去したもの）で比べてから、同じ読みの中で元の名前で比べる
+function byName(a, b) {
+  const ka = a.key || a.name, kb = b.key || b.name;
+  return ka.localeCompare(kb, 'ja', { numeric: true })
+      || String(a.name).localeCompare(String(b.name), 'ja', { numeric: true });
+}
+
+// ══════════════════════════════════════════════════════
 //  Library — 取得とグルーピング
 // ══════════════════════════════════════════════════════
 async function openLibrary() {
@@ -1276,7 +1298,8 @@ function groupSeries(books) {
 
     g.single = g.owned.length === 0;
     g.cover  = (g.items.find(b => b.cover) || {}).cover || '';
-    g.lastAt = g.items.reduce((m, b) => (b.date && b.date > m ? b.date : m), '');
+    // そのシリーズでいちばん新しい登録日時（数値）
+    g.lastAt = g.items.reduce((m, b) => Math.max(m, toTime(b.date)), 0);
     out.push(g);
   });
 
@@ -1648,13 +1671,24 @@ function visibleGroups() {
     );
   }
 
+  // 「発売予定」で絞ったときだけは、発売日の近い順に固定する
   if (libFilter === 'soon') {
-    list.sort((a, b) => String(nextPubDate(a) || '9999').localeCompare(String(nextPubDate(b) || '9999')));
+    list.sort((a, b) =>
+      String(nextPubDate(a) || '9999').localeCompare(String(nextPubDate(b) || '9999'))
+      || byName(a, b));
     return list;
   }
-  if (libSort === 'series')      list.sort((a,b) => a.name.localeCompare(b.name, 'ja'));
-  else if (libSort === 'recent') list.sort((a,b) => String(b.lastAt).localeCompare(String(a.lastAt)));
-  else if (libSort === 'count')  list.sort((a,b) => b.items.length - a.items.length);
+
+  if (libSort === 'recent') {
+    // 登録が新しい順。日時が同じ・不明なものは名前順で揃える
+    list.sort((a, b) => (b.lastAt - a.lastAt) || byName(a, b));
+  } else if (libSort === 'count') {
+    // 冊数が多い順。同数なら巻数の多いほう、それも同じなら名前順
+    list.sort((a, b) =>
+      (b.items.length - a.items.length) || (b.max - a.max) || byName(a, b));
+  } else {
+    list.sort(byName);
+  }
 
   return list;
 }
@@ -1688,7 +1722,6 @@ function renderLibrary() {
     const p     = pubOf(g);
     const unb   = unownedVols(g);
     const up    = upcomingVols(g);
-    const soon  = nextPub(g);
     const gap   = g.missing.length;
     const newer = p && p.max > g.max;
     const cover = g.cover
@@ -1717,8 +1750,13 @@ function renderLibrary() {
         + (p ? ' / <span class="pub-txt">発売 ' + p.max + '巻</span>' : ' / 最新 ' + g.max + '巻')
         + (unb.length ? '<span class="gap-txt">　未所持 ' + unb.length + '巻</span>'
                       : (p ? '<span class="own-txt">　発売分はそろい</span>' : ''))
-        + (soon ? '<div class="soon-txt" style="margin-top:.15rem">発売予定 '
-                  + soon.vol + '巻' + (soon.date ? '　' + escapeHTML(soon.date) : '') + '</div>' : '');
+        + (up.length ? '<div class="soon-txt" style="margin-top:.15rem">発売予定 '
+                  + up.slice(0, 3).map(v => {
+                      const d = (p && p.dates[v]) || '';
+                      return v + '巻' + (d ? '(' + escapeHTML(d) + ')' : '');
+                    }).join('、')
+                  + (up.length > 3 ? ' ほか' + (up.length - 3) + '巻' : '')
+                  + '</div>' : '');
 
     return '<div class="ser-card' + (gap || unb.length ? ' has-gap' : '') + '" '
          + 'onclick="openSeries(' + JSON.stringify(g.key).replace(/"/g,'&quot;') + ')">'
