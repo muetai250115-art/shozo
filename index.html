@@ -1080,8 +1080,9 @@ function renderConfirm(info, owned) {
   document.getElementById('b-publisher').textContent = info.publisher ? '出版: ' + info.publisher : '';
   document.getElementById('b-imprint').textContent   = info.imprint   || '';
   document.getElementById('b-isbn').textContent      = 'ISBN: ' + info.isbn;
-  document.getElementById('vol-pill-wrap').innerHTML = info.volume
-    ? '<div class="vol-pill">第 ' + escapeHTML(info.volume) + ' 巻</div>' : '';
+  document.getElementById('vol-pill-wrap').innerHTML = (info.volume
+    ? '<div class="vol-pill">第 ' + escapeHTML(info.volume) + ' 巻</div>' : '')
+    + (info.edition ? '<span class="src-tag">' + escapeHTML(info.edition) + '</span>' : '');
 
   document.getElementById('dupe-warn').style.display = isDupe ? 'flex' : 'none';
   const btn = document.getElementById('btn-reg');
@@ -1204,6 +1205,9 @@ function seriesKey(s) {
   t = t.replace(/[\s\u3000]/g, '');
   t = t.replace(/[・･·]/g, '');
   t = t.replace(/[!！?？~〜～ー―–—\-‐_'’"“”「」『』（）()\[\]［］【】〈〉《》,，、.．。:：;；\/／\\|｜*＊+＋#＃&＆%％@＠^]/g, '');
+
+  // 特装版・限定版は通常版と別ISBNだが同じ巻なので、キーからは落とす
+  t = t.replace(/(?:初回|数量|期間)?(?:限定|特装|特別|豪華|特製)版[abc]?/g, '');
 
   // 末尾に残った巻次表記（vol3 / 第3巻 / 3 など）を除去
   t = t.replace(/(vol|volume|v)?\d+(巻|卷|冊)?$/,'');
